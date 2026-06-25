@@ -177,7 +177,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 /* Flow bar */
 .flow-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin:2px 2px 8px;font-variant-numeric:tabular-nums}
 .flow-bar{display:flex;gap:2px;height:46px;border-radius:11px;overflow:hidden;background:var(--chip)}
-.flow-seg{height:100%;flex:0 0 0%;min-width:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;transition:flex-basis .5s cubic-bezier(.4,0,.2,1);overflow:hidden;white-space:nowrap;position:relative}
+.flow-seg{height:100%;flex:0 0 0%;min-width:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;cursor:pointer;transition:flex-basis .5s cubic-bezier(.4,0,.2,1),opacity .15s ease;overflow:hidden;white-space:nowrap;position:relative}
+.flow-bar:hover .flow-seg{opacity:.4}
+.flow-bar .flow-seg:hover{opacity:1}
 .flow-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:9px 16px;margin-top:16px}
 .leg{display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0}
 .leg .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
@@ -547,6 +549,11 @@ function ln(label, value, opt){
   return `<div class="ln ${opt.cls||''}"><span class="ln-l">${label}${sub}</span><span class="ln-v${vcls}">${value}</span></div>`;
 }
 
+/* ---------- shared floating chart tooltip ---------- */
+const chartTip = document.getElementById('chartTip');
+const moveTip = e => { chartTip.style.left = e.clientX + 'px'; chartTip.style.top = e.clientY + 'px'; };
+const hideTip = () => chartTip.classList.remove('show');
+
 /* ---------- flow bar ---------- */
 const FLOW = [
   {k:'cost',      lbl:'Business costs',   c:COL.cost},
@@ -564,6 +571,9 @@ FLOW.forEach(f => {
   const d = document.createElement('div');
   d.className = 'flow-seg';
   d.style.background = f.c;
+  d.addEventListener('mouseenter', e => { if (d._tip) { chartTip.innerHTML = d._tip; chartTip.classList.add('show'); moveTip(e); } });
+  d.addEventListener('mousemove', moveTip);
+  d.addEventListener('mouseleave', hideTip);
   flowBar.appendChild(d);
   flowSegs[f.k] = d;
 });
@@ -576,12 +586,9 @@ const TAXSEG = [
   {k:'box2', lbl:'Box 2 — dividend',    c:'#ef4444'}
 ];
 
-/* ---------- donut builder + shared chart tooltip ---------- */
+/* ---------- donut builder ---------- */
 const SVGNS = 'http://www.w3.org/2000/svg';
 const DONUT_R = 72, DONUT_SW = 26, DONUT_C = 2 * Math.PI * DONUT_R;
-const chartTip = document.getElementById('chartTip');
-const moveTip = e => { chartTip.style.left = e.clientX + 'px'; chartTip.style.top = e.clientY + 'px'; };
-const hideTip = () => chartTip.classList.remove('show');
 
 function buildDonut(segs, tot){
   const g = document.getElementById('donutSegs');
@@ -643,8 +650,8 @@ function render(){
     const p = v / rev * 100;
     const seg = flowSegs[f.k];
     seg.style.flexBasis = p + '%';
-    seg.title = `${f.lbl}: ${eur(r[f.k])} (${(r[f.k]/rev*100).toFixed(1)}%)`;
     seg.textContent = p > 8 ? eurK(v) : '';
+    seg._tip = `<span class="tdot" style="background:${f.c}"></span>${f.lbl}<span class="tval">${eurS(r[f.k])}</span><span class="tpct">${(r[f.k]/rev*100).toFixed(1)}%</span>`;
   });
   document.getElementById('flowTotal').textContent = eur(r.revenue) + ' revenue';
   document.getElementById('flowMax').textContent = eur(r.revenue);
