@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="darkreader-lock">
+<title>Dutch BV · DGA Tax Model 2026</title>
+<meta name="description" content="Interactive 2026 tax model for a Dutch BV with a single shareholder/DGA. Change the inputs, watch every tax recalculate live.">
+<style>
+:root{
+  --bg:#eef1f5;
+  --card:#ffffff;
+  --ink:#0f1d2e;
+  --muted:#647387;
+  --faint:#9aa6b4;
+  --line:#e4e8ee;
+  --line-strong:#d4dae2;
+  --navy:#1f4e78;
+  --navy-deep:#18314f;
+  --accent:#ef6c34;
+  --accent-soft:#fff1ea;
+  --good:#16a34a;
+  --good-soft:#ecfdf3;
+  --good-border:#c8ead4;
+  --warn-soft:#fffbeb;
+  --warn-border:#fde68a;
+  --warn-ink:#92400e;
+  --chip:#f1f4f8;
+  --field-bg:#f6f8fb;
+  --track:#e6eaf0;
+  --thumb:#ffffff;
+  --btn-bg:#eef3f9;
+  --btn-bg-h:#e2ebf5;
+  --btn-ink:#1f4e78;
+  --grad1:#fbe6da;
+  --grad2:#dde7f3;
+  --shadow:0 1px 2px rgba(16,30,54,.04), 0 8px 24px -12px rgba(16,30,54,.18);
+  --radius:16px;
+  --maxw:1280px;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono","Roboto Mono",Menlo,monospace;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#0e1724;
+  --card:#15202f;
+  --ink:#e7edf4;
+  --muted:#9fb0c2;
+  --faint:#6d7e92;
+  --line:#243343;
+  --line-strong:#33485d;
+  --navy:#6aa3da;
+  --navy-deep:#0b1422;
+  --accent:#f9824e;
+  --accent-soft:rgba(249,130,78,.16);
+  --good:#3ecf8e;
+  --good-soft:rgba(62,207,142,.13);
+  --good-border:rgba(62,207,142,.32);
+  --warn-soft:rgba(251,191,36,.12);
+  --warn-border:rgba(251,191,36,.4);
+  --warn-ink:#fcd34d;
+  --chip:#1d2a3a;
+  --field-bg:#101b29;
+  --track:#283749;
+  --thumb:#e7edf4;
+  --btn-bg:#1d2a3a;
+  --btn-bg-h:#26384c;
+  --btn-ink:#cfe0f2;
+  --grad1:rgba(249,130,78,.10);
+  --grad2:rgba(31,78,120,.22);
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 30px -16px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, var(--grad1) 0%, transparent 55%),
+    radial-gradient(1000px 500px at -10% 0%, var(--grad2) 0%, transparent 50%),
+    var(--bg);
+  color:var(--ink);
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+body,.card,.kpi,.theme-btn,details.assump,.revenue-readout{transition:background-color .3s ease,border-color .3s ease,color .3s ease}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:32px 24px 64px}
+@media(min-width:1500px){:root{--maxw:1380px}}
+@media(min-width:1800px){:root{--maxw:1500px}}
+@media(min-width:2200px){:root{--maxw:1680px}}
+.tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* Header */
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:26px}
+.brand h1{margin:0;font-size:26px;letter-spacing:-.02em;font-weight:700}
+.brand h1 .flag{display:inline-block;width:30px;height:20px;border-radius:4px;vertical-align:-3px;margin-right:10px;overflow:hidden;box-shadow:0 0 0 1px var(--line-strong);forced-color-adjust:none;background:linear-gradient(#AE1C28 0 33.333%,#ffffff 33.333% 66.667%,#21468B 66.667% 100%)}
+.brand p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:560px}
+.year-badge{display:inline-flex;align-items:center;gap:7px;background:var(--navy-deep);color:#fff;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.year-badge .dot{width:7px;height:7px;border-radius:50%;background:#5fd08a;box-shadow:0 0 0 3px rgba(95,208,138,.25)}
+.head-right{display:flex;align-items:center;gap:12px}
+.theme-btn{display:grid;place-items:center;width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;box-shadow:var(--shadow);transition:background-color .2s,border-color .2s,transform .1s}
+.theme-btn:hover{border-color:var(--line-strong)}
+.theme-btn:active{transform:scale(.94)}
+.theme-btn .ic-sun{display:none}
+[data-theme="dark"] .theme-btn .ic-moon{display:none}
+[data-theme="dark"] .theme-btn .ic-sun{display:block}
+
+/* KPI row */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+.kpi.k-tax::before{background:#dc2626}
+.kpi.k-cash::before{background:var(--good)}
+.kpi.k-rate::before{background:var(--accent)}
+.kpi.k-ret::before{background:#0e7490}
+.kpi .label{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.01em}
+.kpi .val{font-size:27px;font-weight:700;letter-spacing:-.02em;margin-top:7px}
+.kpi .sub{font-size:12px;color:var(--faint);margin-top:3px}
+
+/* Layout */
+.grid{display:grid;grid-template-columns:332px 1fr;gap:22px;align-items:start}
+.sidebar{position:sticky;top:20px}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden}
+.card-h{display:flex;align-items:center;gap:11px;padding:15px 20px;border-bottom:1px solid var(--line)}
+.card-h .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;color:#fff;font-size:14px;font-weight:700}
+.card-h h2{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em}
+.card-h .tag{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--chip);border:1px solid var(--line);padding:4px 9px;border-radius:999px}
+.card-b{padding:8px 20px 18px}
+
+/* generic ledger lines */
+.ln{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.ln:last-child{border-bottom:0}
+.ln-l{color:var(--muted);font-size:13.5px}
+.ln-l .ln-sub{display:block;color:var(--faint);font-size:11.5px;margin-top:1px}
+.ln-v{font-weight:600;font-size:14px;white-space:nowrap}
+.ln.sub{border-bottom:1px solid var(--line)}
+.ln.sub .ln-l{color:var(--ink);font-weight:600}
+.ln.sub .ln-v{font-weight:700}
+.ln.total{margin-top:4px;border-top:1.5px solid var(--line-strong);border-bottom:0;padding-top:11px}
+.ln.total .ln-l{color:var(--ink);font-weight:700;font-size:14px}
+.ln.total .ln-v{font-weight:800;font-size:16px}
+.ln.muted .ln-l,.ln.muted .ln-v{color:var(--faint);font-weight:500;font-size:12.5px}
+.neg{color:#c2410c}
+.pos{color:var(--good)}
+
+.cards-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.cards-2 .card{margin-bottom:0}
+
+/* Inputs */
+.ctrl{padding:13px 0;border-bottom:1px solid var(--line)}
+.ctrl:last-of-type{border-bottom:0}
+.ctrl-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.ctrl label{font-size:13px;font-weight:600;color:var(--ink)}
+.ctrl label .hint{display:block;font-weight:500;color:var(--faint);font-size:11px;margin-top:1px}
+.ctrl-val{display:flex;align-items:center;background:var(--field-bg);border:1px solid var(--line-strong);border-radius:9px;padding:0 4px 0 9px;transition:border-color .15s,box-shadow .15s}
+.ctrl-val:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.ctrl-val .pre{color:var(--faint);font-size:13px;font-weight:600}
+.ctrl-val input.num{width:74px;border:0;background:transparent;text-align:right;font:600 14px/1 inherit;color:var(--ink);padding:8px 4px;font-variant-numeric:tabular-nums;outline:none;-moz-appearance:textfield}
+.ctrl-val input.num::-webkit-outer-spin-button,.ctrl-val input.num::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;background:linear-gradient(var(--accent),var(--accent)) 0/var(--fill,50%) 100% no-repeat,var(--track);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--thumb);border:2px solid var(--accent);box-shadow:0 1px 4px rgba(16,30,54,.25);cursor:pointer;transition:transform .1s}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.12)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--thumb);border:2px solid var(--accent);box-shadow:0 1px 4px rgba(16,30,54,.25);cursor:pointer}
+
+.revenue-readout{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding:13px 14px;background:var(--navy-deep);color:#fff;border-radius:11px}
+.revenue-readout .rr-left{display:flex;flex-direction:column;gap:2px}
+.revenue-readout .l{font-size:12px;opacity:.85;font-weight:500}
+.revenue-readout .l2{font-size:11px;opacity:.65;font-weight:500;font-variant-numeric:tabular-nums}
+.revenue-readout .v{font-size:20px;font-weight:700;letter-spacing:-.01em}
+
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.presets button{flex:1;min-width:0;font:600 12px/1 inherit;color:var(--btn-ink);background:var(--btn-bg);border:1px solid var(--line-strong);border-radius:8px;padding:9px 8px;cursor:pointer;transition:background .15s,border-color .15s}
+.presets button:hover{background:var(--btn-bg-h);border-color:var(--line-strong)}
+
+/* Flow bar */
+.flow-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin:2px 2px 8px;font-variant-numeric:tabular-nums}
+.flow-bar{display:flex;gap:2px;height:46px;border-radius:11px;overflow:hidden;background:var(--chip)}
+.flow-seg{height:100%;flex:0 0 0%;min-width:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;transition:flex-basis .5s cubic-bezier(.4,0,.2,1);overflow:hidden;white-space:nowrap;position:relative}
+.flow-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:9px 16px;margin-top:16px}
+.leg{display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0}
+.leg .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+.leg .lt{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leg .lv{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Donut */
+.donut-row{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center}
+.donut{position:relative;width:184px;height:184px;margin:4px auto}
+.donut #donutSvg{width:100%;height:100%;display:block;overflow:visible}
+#donutSegs circle{transition:opacity .15s ease,stroke-width .15s ease;cursor:pointer}
+#donutSegs:hover circle{opacity:.38}
+#donutSegs circle:hover{opacity:1;stroke-width:30}
+.donut .hole{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none}
+.donut .hole .t{font-size:11px;color:var(--muted);font-weight:600}
+.donut .hole .n{font-size:21px;font-weight:800;letter-spacing:-.02em;margin-top:2px}
+.donut .hole .p{font-size:11px;color:var(--faint);margin-top:2px}
+.chart-tip{position:fixed;left:0;top:0;z-index:1000;pointer-events:none;opacity:0;transition:opacity .12s ease;background:var(--ink);color:var(--card);font-size:12px;font-weight:600;padding:7px 11px;border-radius:9px;box-shadow:0 8px 22px rgba(0,0,0,.28);white-space:nowrap;transform:translate(-50%,calc(-100% - 12px))}
+.chart-tip.show{opacity:1}
+.chart-tip .tdot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+.chart-tip .tval{margin-left:9px;font-weight:800}
+.chart-tip .tpct{margin-left:6px;opacity:.7}
+.donut-legend .leg{padding:7px 0;border-bottom:1px dashed var(--line)}
+.donut-legend .leg:last-child{border-bottom:0}
+
+/* Salary annual/monthly table */
+.sal-tbl{width:100%;border-collapse:collapse}
+.sal-tbl th{text-align:right;font-size:11px;color:var(--faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 0 9px}
+.sal-tbl th:first-child{text-align:left}
+.sal-tbl td{padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;color:var(--muted)}
+.sal-tbl td.num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+.sal-tbl tr.tot td{border-bottom:0;border-top:1.5px solid var(--line-strong);padding-top:11px;color:var(--ink);font-weight:700}
+.sal-tbl tr.tot td.num{font-weight:800}
+.credit-note{margin-top:12px;font-size:12px;color:var(--muted);background:var(--good-soft);border:1px solid var(--good-border);border-radius:9px;padding:9px 12px}
+
+/* Payment calendar */
+.pay{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.pay:last-child{border-bottom:0}
+.pay .amt{flex:0 0 116px;text-align:right}
+.pay .amt .a{font-size:17px;font-weight:800;letter-spacing:-.01em}
+.pay .amt .f{font-size:11px;color:var(--faint);font-weight:600;margin-top:2px}
+.pay .body .nm{font-weight:700;font-size:13.5px}
+.pay .body .who{font-size:11.5px;color:var(--accent);font-weight:600;margin:2px 0 4px}
+.pay .body .note{font-size:12px;color:var(--muted)}
+
+/* Warnings */
+.warn-box{display:none;gap:10px;align-items:flex-start;background:var(--warn-soft);border:1px solid var(--warn-border);color:var(--warn-ink);border-radius:10px;padding:11px 13px;font-size:12.5px;margin:0 0 16px}
+.warn-box.show{display:flex}
+.warn-box .wi{flex:0 0 auto;font-weight:800}
+
+/* Assumptions */
+details.assump{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+details.assump>summary{list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:11px;font-weight:700;font-size:15px}
+details.assump>summary::-webkit-details-marker{display:none}
+details.assump>summary .chev{margin-left:auto;color:var(--faint);transition:transform .2s}
+details.assump[open]>summary .chev{transform:rotate(90deg)}
+details.assump>summary .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--navy);color:#fff;font-size:14px}
+.assump-b{padding:4px 20px 20px;border-top:1px solid var(--line)}
+.assump-grp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--navy);margin:16px 0 4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.assump-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 20px}
+.prm{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+.prm label{font-size:12.5px;color:var(--muted)}
+.prm .pbox{display:flex;align-items:center;background:var(--field-bg);border:1px solid var(--line-strong);border-radius:7px;padding:0 8px;transition:border-color .15s,box-shadow .15s}
+.prm .pbox:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.prm .pbox input{width:74px;border:0;background:transparent;text-align:right;font:600 13px/1 inherit;color:var(--ink);padding:7px 2px;font-variant-numeric:tabular-nums;outline:none;-moz-appearance:textfield}
+.prm .pbox input::-webkit-outer-spin-button,.prm .pbox input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.prm .pbox .u{color:var(--faint);font-size:12px;font-weight:600;padding-left:3px}
+.assump-actions{margin-top:18px}
+.assump-actions button{font:600 12.5px/1 inherit;color:var(--btn-ink);background:var(--btn-bg);border:1px solid var(--line-strong);border-radius:8px;padding:9px 14px;cursor:pointer}
+.assump-actions button:hover{background:var(--btn-bg-h)}
+
+footer{margin-top:34px;color:var(--muted);font-size:12px;line-height:1.6;border-top:1px solid var(--line);padding-top:20px}
+footer b{color:var(--ink)}
+footer .src{color:var(--faint);font-size:11.5px;margin-top:8px}
+
+@media(max-width:920px){
+  .grid{grid-template-columns:1fr}
+  .sidebar{position:static}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .cards-2{grid-template-columns:1fr}
+  .flow-legend{grid-template-columns:repeat(2,1fr)}
+  .donut-row{grid-template-columns:1fr;justify-items:center;text-align:left}
+  .assump-grid{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+  .wrap{padding:22px 14px 48px}
+  .kpis{grid-template-columns:1fr 1fr}
+  .pay .amt{flex-basis:96px}
+}
+</style>
+<script>
+try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','light');}
+</script>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <h1>
+        <span class="flag" aria-hidden="true"></span>
+        Dutch BV · DGA Tax Model
+      </h1>
+      <p>Corporate and personal tax for a Dutch BV with a single shareholder/director. Drag the inputs — every euro of tax recalculates live.</p>
+    </div>
+    <div class="head-right">
+      <button id="themeToggle" class="theme-btn" type="button" aria-label="Toggle light or dark theme" title="Toggle light / dark">
+        <svg class="ic-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="ic-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <div class="year-badge"><span class="dot"></span>Tax year 2026</div>
+    </div>
+  </header>
+
+  <section class="kpis">
+    <div class="kpi k-tax"><div class="label">Total tax</div><div class="val tnum" id="kpiTax">—</div><div class="sub">excl. BTW pass-through</div></div>
+    <div class="kpi k-cash"><div class="label">Net cash to you</div><div class="val tnum" id="kpiCash">—</div><div class="sub">salary + dividend, after tax</div></div>
+    <div class="kpi k-rate"><div class="label">Effective rate (take-home)</div><div class="val tnum" id="kpiRate">—</div><div class="sub">on cash actually extracted</div></div>
+    <div class="kpi k-ret"><div class="label">Retained in the BV</div><div class="val tnum" id="kpiRet">—</div><div class="sub">after-tax profit kept inside</div></div>
+  </section>
+
+  <div class="grid">
+
+    <!-- ============ SIDEBAR : INPUTS ============ -->
+    <aside class="sidebar">
+      <div class="card">
+        <div class="card-h">
+          <span class="ico" style="background:#2563eb">€</span>
+          <h2>Your inputs</h2>
+          <span class="tag">editable</span>
+        </div>
+        <div class="card-b">
+          <div id="inputs"></div>
+          <div class="revenue-readout">
+            <div class="rr-left">
+              <span class="l">Annual revenue (excl. BTW)</span>
+              <span class="l2" id="revSub">—</span>
+            </div>
+            <span class="v tnum" id="revOut">—</span>
+          </div>
+          <div class="presets">
+            <button data-preset="reset">Reset</button>
+            <button data-preset="lean">Min. salary</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <main>
+
+      <div class="warn-box" id="warnDiv"><span class="wi">!</span><span id="warnDivTxt"></span></div>
+      <div class="warn-box" id="warnSal"><span class="wi">!</span><span id="warnSalTxt"></span></div>
+
+      <!-- Where the money goes -->
+      <div class="card">
+        <div class="card-h">
+          <span class="ico" style="background:linear-gradient(135deg,#16a34a,#0e7490)">↳</span>
+          <h2>Where every euro of revenue goes</h2>
+          <span class="tag" id="flowTotal">—</span>
+        </div>
+        <div class="card-b">
+          <div class="flow-scale"><span>€0</span><span id="flowMax">—</span></div>
+          <div class="flow-bar" id="flowBar"></div>
+          <div class="flow-legend" id="flowLegend"></div>
+        </div>
+      </div>
+
+      <!-- Corporate + BTW -->
+      <div class="cards-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-h"><span class="ico" style="background:#7f1d1d">1</span><h2>Corporate — the BV</h2></div>
+          <div class="card-b" id="corpBody"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="ico" style="background:#0891b2">%</span><h2>BTW / VAT</h2><span class="tag">pass-through</span></div>
+          <div class="card-b" id="btwBody"></div>
+        </div>
+      </div>
+
+      <!-- Salary + Dividend -->
+      <div class="cards-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-h"><span class="ico" style="background:#b91c1c">2</span><h2>Salary — Box 1</h2></div>
+          <div class="card-b" id="salBody"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="ico" style="background:#be123c">3</span><h2>Dividend — Box 2</h2></div>
+          <div class="card-b" id="divBody"></div>
+        </div>
+      </div>
+
+      <!-- Tax composition + Summary -->
+      <div class="cards-2" style="margin-bottom:20px">
+        <div class="card">
+          <div class="card-h"><span class="ico" style="background:#dc2626">◔</span><h2>Tax composition</h2></div>
+          <div class="card-b">
+            <div class="donut-row">
+              <div class="donut" id="donut">
+                <svg id="donutSvg" viewBox="0 0 200 200" aria-hidden="true"><g id="donutSegs" transform="rotate(-90 100 100)"></g></svg>
+                <div class="hole"><div class="t">Total tax</div><div class="n tnum" id="donutTotal">—</div><div class="p tnum" id="donutPct">—</div></div>
+              </div>
+              <div class="donut-legend" id="donutLegend"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="ico" style="background:var(--navy-deep)">Σ</span><h2>Summary</h2></div>
+          <div class="card-b" id="sumBody"></div>
+        </div>
+      </div>
+
+      <!-- Payment calendar -->
+      <div class="card">
+        <div class="card-h"><span class="ico" style="background:#475569">⏱</span><h2>When each tax is paid</h2><span class="tag">calendar-year BV</span></div>
+        <div class="card-b" id="payBody"></div>
+      </div>
+
+      <!-- Assumptions -->
+      <details class="assump">
+        <summary><span class="ico">⚙</span>2026 tax parameters <span class="chev">›</span></summary>
+        <div class="assump-b">
+          <p style="color:var(--muted);font-size:12.5px;margin:8px 0 4px">Every rate and threshold the model reads. Edit any cell to test a different year or scenario — the whole page recalculates.</p>
+          <div id="assumpBody"></div>
+          <div class="assump-actions"><button id="resetParams">Reset to 2026 figures</button></div>
+        </div>
+      </details>
+
+      <footer>
+        <b>This is a planning model, not tax advice.</b> It assumes a single shareholder/DGA below AOW age, a Dec 31 year-end, and the low Zvw "bijdrage" rate (4.85%) withheld from the DGA. It ignores Box 3, the 30% ruling, mortgage interest, pension build-up, prior-year retained earnings, partner/income-splitting and the gebruikelijkloon comparison test. The €58,000 customary-salary minimum is informational only. Confirm the structure and the Zvw treatment with a Dutch accountant before acting.
+        <div class="src">Sources: Belastingdienst (voorlopige aanslag 2026; dividendbelasting; VPB), KVK 2026 rates, Salaris Vanmorgen (Zvw 2026), De Zaak (Box 2 2026).</div>
+      </footer>
+
+    </main>
+  </div>
+</div>
+
+<div class="chart-tip" id="chartTip"></div>
+
+<script>
+"use strict";
+
+/* ---------- formatting ---------- */
+const eur  = n => '€' + Math.round(n).toLocaleString('en-US');
+const eurS = n => (n < 0 ? '−€' : '€') + Math.round(Math.abs(n)).toLocaleString('en-US');
+const eurK = n => '€' + Math.round(n/1000) + 'k';
+const pct  = n => (n*100).toFixed(1) + '%';
+const clamp = (v,a,b) => Math.min(Math.max(v,a),b);
+
+/* ---------- colours ---------- */
+const COL = {
+  cost:'#9aa6b4', vpb:'#7f1d1d', nit:'#b91c1c', zvw:'#ef4444',
+  box2:'#fb7185', netSalary:'#16a34a', netDiv:'#5fce86', retained:'#0e7490'
+};
+const GEBRUIKELIJK_LOON = 58000;
+
+/* ---------- inputs ---------- */
+const INPUTS = [
+  {id:'rate',     label:'Hourly rate',          unit:'€', min:0,   max:300,    step:5,    numStep:'0.01', val:100, hint:'excl. BTW'},
+  {id:'hoursDay', label:'Billable hours / day', unit:'',  min:0,   max:12,     step:0.5,  numStep:'0.5',  val:8},
+  {id:'workDays', label:'Working days / year',  unit:'',  min:200, max:300,    step:5,    val:260, hint:'weekdays, before leave'},
+  {id:'vacation', label:'Vacation days',        unit:'',  min:0,   max:60,     step:1,    val:25,  hint:'unbilled'},
+  {id:'cost',     label:'Other business costs', unit:'€', min:0,   max:100000, step:1000, val:10000, hint:'deductible, excl. BTW'},
+  {id:'salary',   label:'DGA gross salary',     unit:'€', min:0,   max:200000, step:1000, val:70000, hint:'per year'},
+  {id:'dividend', label:'Dividend distributed', unit:'€', min:0,   max:300000, step:5000, val:80000}
+];
+
+/* ---------- parameters (2026) ---------- */
+const PARAMS = [
+  {group:'BTW / VAT'},
+  {id:'btw',        label:'BTW rate',                       val:0.21,    type:'pct'},
+  {group:'Corporate income tax (VPB)'},
+  {id:'vpb1',       label:'VPB rate — bracket 1',           val:0.19,    type:'pct'},
+  {id:'vpb2',       label:'VPB rate — bracket 2',           val:0.258,   type:'pct'},
+  {id:'vpbThresh',  label:'VPB bracket threshold',          val:200000,  type:'eur'},
+  {group:'Box 1 — income tax (below AOW age)'},
+  {id:'b1r',        label:'Bracket 1 rate',                 val:0.3575,  type:'pct'},
+  {id:'b1lim',      label:'Bracket 1 limit',                val:38883,   type:'eur'},
+  {id:'b2r',        label:'Bracket 2 rate',                 val:0.3756,  type:'pct'},
+  {id:'b2lim',      label:'Bracket 2 limit',                val:78426,   type:'eur'},
+  {id:'b3r',        label:'Bracket 3 rate',                 val:0.495,   type:'pct'},
+  {group:'Heffingskortingen (credits)'},
+  {id:'ahkMax',     label:'Algemene heffingskorting — max', val:3115,    type:'eur'},
+  {id:'ahkStart',   label:'AHK phase-out start',            val:29736,   type:'eur'},
+  {id:'ahkRate',    label:'AHK phase-out rate',             val:0.06398, type:'pct'},
+  {id:'akMax',      label:'Arbeidskorting — max',           val:5685,    type:'eur'},
+  {id:'akStart',    label:'Arbeidskorting phase-out start', val:45592,   type:'eur'},
+  {id:'akRate',     label:'Arbeidskorting phase-out rate',  val:0.0651,  type:'pct'},
+  {group:'Health contribution (Zvw)'},
+  {id:'zvwRate',    label:'Zvw rate (DGA bijdrage)',        val:0.0485,  type:'pct'},
+  {id:'zvwMax',     label:'Zvw max contribution base',      val:79409,   type:'eur'},
+  {group:'Box 2 — dividend (substantial interest)'},
+  {id:'box2r1',     label:'Box 2 rate — bracket 1',         val:0.245,   type:'pct'},
+  {id:'box2thresh', label:'Box 2 bracket threshold',        val:68843,   type:'eur'},
+  {id:'box2r2',     label:'Box 2 rate — bracket 2',         val:0.31,    type:'pct'},
+  {id:'dwht',       label:'Dividend withholding (prepaid)', val:0.15,    type:'pct'}
+];
+
+const state = {};
+const P = {};
+INPUTS.forEach(c => state[c.id] = c.val);
+PARAMS.forEach(p => { if (!p.group) P[p.id] = p.val; });
+
+/* ---------- the model (ported 1:1 from the workbook formulas) ---------- */
+function calc(){
+  const billDays = Math.max(state.workDays - state.vacation, 0);
+  const revenue  = state.rate * state.hoursDay * billDays;
+  const cost     = state.cost;
+  const salary   = state.salary;
+  const dividend = state.dividend;
+
+  // BTW (pass-through)
+  const outputBtw = P.btw * revenue;
+  const inputBtw  = -P.btw * cost;
+  const netBtw    = outputBtw + inputBtw;
+
+  // Corporate
+  const pbt  = revenue - salary - cost;
+  const vpb1 = P.vpb1 * Math.min(pbt, P.vpbThresh);
+  const vpb2 = P.vpb2 * Math.max(pbt - P.vpbThresh, 0);
+  const vpb  = vpb1 + vpb2;
+  const atp  = pbt - vpb;
+
+  // Box 1 — salary
+  const t1 = P.b1r * Math.min(salary, P.b1lim);
+  const t2 = P.b2r * Math.max(Math.min(salary, P.b2lim) - P.b1lim, 0);
+  const t3 = P.b3r * Math.max(salary - P.b2lim, 0);
+  const bracketTax = t1 + t2 + t3;
+  const ahk = Math.max(0, P.ahkMax - P.ahkRate * Math.max(salary - P.ahkStart, 0));
+  let ak;
+  if (salary < 11965)        ak = 0.08324 * salary;
+  else if (salary < 25845)   ak = 996  + 0.31009 * (salary - 11965);
+  else if (salary < P.akStart) ak = 5300 + 0.0195 * (salary - 25845);
+  else                       ak = P.akMax - P.akRate * (salary - P.akStart);
+  ak = Math.max(0, ak);
+  const nit = bracketTax - ahk - ak;
+  const zvw = P.zvwRate * Math.min(salary, P.zvwMax);
+  const netSalary = salary - nit - zvw;
+
+  // Box 2 — dividend
+  const box2a = P.box2r1 * Math.min(dividend, P.box2thresh);
+  const box2b = P.box2r2 * Math.max(dividend - P.box2thresh, 0);
+  const box2  = box2a + box2b;
+  const dwht  = P.dwht * dividend;
+  const netDiv = dividend - box2;
+
+  // Summary
+  const totalTax = vpb + nit + zvw + box2;
+  const netCash  = netSalary + netDiv;
+  const retained = atp - dividend;
+  const taxPctEarnings = (revenue - cost) > 0 ? totalTax / (revenue - cost) : 0;
+  const vpbDiv = atp > 0 ? vpb * Math.min(dividend, atp) / atp : 0;
+  const effTakeHome = (salary + dividend + vpbDiv) > 0
+    ? (nit + zvw + box2 + vpbDiv) / (salary + dividend + vpbDiv) : 0;
+
+  return {revenue,billDays,cost,salary,dividend,outputBtw,inputBtw,netBtw,
+    pbt,vpb1,vpb2,vpb,atp,t1,t2,t3,ahk,ak,nit,zvw,netSalary,
+    box2a,box2b,box2,dwht,netDiv,totalTax,netCash,retained,
+    taxPctEarnings,effTakeHome};
+}
+
+/* ---------- ledger row helper ---------- */
+function ln(label, value, opt){
+  opt = opt || {};
+  const sub = opt.sub ? `<span class="ln-sub">${opt.sub}</span>` : '';
+  const vcls = opt.vcls ? ' ' + opt.vcls : '';
+  return `<div class="ln ${opt.cls||''}"><span class="ln-l">${label}${sub}</span><span class="ln-v${vcls}">${value}</span></div>`;
+}
+
+/* ---------- flow bar ---------- */
+const FLOW = [
+  {k:'cost',      lbl:'Business costs',   c:COL.cost},
+  {k:'vpb',       lbl:'VPB (corporate)',  c:COL.vpb},
+  {k:'nit',       lbl:'Box 1 income tax', c:COL.nit},
+  {k:'zvw',       lbl:'Zvw health',       c:COL.zvw},
+  {k:'box2',      lbl:'Box 2 dividend',   c:COL.box2},
+  {k:'netSalary', lbl:'Net salary',       c:COL.netSalary},
+  {k:'netDiv',    lbl:'Net dividend',     c:COL.netDiv},
+  {k:'retained',  lbl:'Retained in BV',   c:COL.retained}
+];
+const flowBar = document.getElementById('flowBar');
+const flowSegs = {};
+FLOW.forEach(f => {
+  const d = document.createElement('div');
+  d.className = 'flow-seg';
+  d.style.background = f.c;
+  flowBar.appendChild(d);
+  flowSegs[f.k] = d;
+});
+
+/* ---------- donut ---------- */
+const TAXSEG = [
+  {k:'vpb',  lbl:'VPB — corporate',     c:'#3b82f6'},
+  {k:'nit',  lbl:'Box 1 — income tax',  c:'#f59e0b'},
+  {k:'zvw',  lbl:'Zvw — health',        c:'#14b8a6'},
+  {k:'box2', lbl:'Box 2 — dividend',    c:'#ef4444'}
+];
+
+/* ---------- donut builder + shared chart tooltip ---------- */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const DONUT_R = 72, DONUT_SW = 26, DONUT_C = 2 * Math.PI * DONUT_R;
+const chartTip = document.getElementById('chartTip');
+const moveTip = e => { chartTip.style.left = e.clientX + 'px'; chartTip.style.top = e.clientY + 'px'; };
+const hideTip = () => chartTip.classList.remove('show');
+
+function buildDonut(segs, tot){
+  const g = document.getElementById('donutSegs');
+  g.textContent = '';
+  let start = 0;
+  segs.forEach(s => {
+    if (s.v <= 0) return;
+    const frac = s.v / tot, len = frac * DONUT_C;
+    const c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('cx', 100); c.setAttribute('cy', 100); c.setAttribute('r', DONUT_R);
+    c.setAttribute('fill', 'none'); c.setAttribute('stroke', s.c);
+    c.setAttribute('stroke-width', DONUT_SW);
+    c.setAttribute('stroke-dasharray', len + ' ' + (DONUT_C - len));
+    c.setAttribute('stroke-dashoffset', -start);
+    const pctTxt = (frac * 100).toFixed(1) + '%';
+    const html = `<span class="tdot" style="background:${s.c}"></span>${s.lbl}<span class="tval">${eur(s.v)}</span><span class="tpct">${pctTxt}</span>`;
+    c.addEventListener('mouseenter', e => { chartTip.innerHTML = html; chartTip.classList.add('show'); moveTip(e); });
+    c.addEventListener('mousemove', moveTip);
+    c.addEventListener('mouseleave', hideTip);
+    const t = document.createElementNS(SVGNS, 'title');
+    t.textContent = `${s.lbl}: ${eur(s.v)} (${pctTxt})`;
+    c.appendChild(t);
+    g.appendChild(c);
+    start += len;
+  });
+}
+
+/* ============ RENDER ============ */
+function render(){
+  const r = calc();
+
+  // KPIs
+  document.getElementById('kpiTax').textContent  = eur(r.totalTax);
+  document.getElementById('kpiCash').textContent = eur(r.netCash);
+  document.getElementById('kpiRate').textContent = pct(r.effTakeHome);
+  document.getElementById('kpiRet').textContent  = eurS(r.retained);
+  document.getElementById('revOut').textContent  = eur(r.revenue);
+  document.getElementById('revSub').textContent  = r.billDays + ' billable days × ' + state.hoursDay + 'h';
+
+  // warnings
+  const wDiv = document.getElementById('warnDiv');
+  if (r.dividend > r.atp + 0.5){
+    wDiv.classList.add('show');
+    document.getElementById('warnDivTxt').innerHTML =
+      `Dividend of <b>${eur(r.dividend)}</b> exceeds this year's after-tax profit of <b>${eur(r.atp)}</b>. A real distribution would have to draw on retained earnings from prior years.`;
+  } else wDiv.classList.remove('show');
+
+  const wSal = document.getElementById('warnSal');
+  if (r.salary < GEBRUIKELIJK_LOON){
+    wSal.classList.add('show');
+    document.getElementById('warnSalTxt').innerHTML =
+      `Salary of <b>${eur(r.salary)}</b> is below the 2026 customary-salary minimum (<b>${eur(GEBRUIKELIJK_LOON)}</b>, gebruikelijk loon). The Belastingdienst may require a higher DGA salary.`;
+  } else wSal.classList.remove('show');
+
+  /* ----- flow bar ----- */
+  const rev = r.revenue || 1;
+  FLOW.forEach(f => {
+    const v = Math.max(r[f.k], 0);
+    const p = v / rev * 100;
+    const seg = flowSegs[f.k];
+    seg.style.flexBasis = p + '%';
+    seg.title = `${f.lbl}: ${eur(r[f.k])} (${(r[f.k]/rev*100).toFixed(1)}%)`;
+    seg.textContent = p > 8 ? eurK(v) : '';
+  });
+  document.getElementById('flowTotal').textContent = eur(r.revenue) + ' revenue';
+  document.getElementById('flowMax').textContent = eur(r.revenue);
+  document.getElementById('flowLegend').innerHTML = FLOW.map(f =>
+    `<div class="leg"><span class="sw" style="background:${f.c}"></span><span class="lt">${f.lbl}</span><span class="lv">${eurS(r[f.k])}</span></div>`
+  ).join('');
+
+  /* ----- corporate ----- */
+  document.getElementById('corpBody').innerHTML =
+    ln('Revenue', eur(r.revenue)) +
+    ln('Salary (deductible)', '−'+eur(r.salary), {vcls:'neg'}) +
+    ln('Other costs (deductible)', '−'+eur(r.cost), {vcls:'neg'}) +
+    ln('Profit before tax', eur(r.pbt), {cls:'sub'}) +
+    ln('VPB @ '+pct(P.vpb1)+' (first '+eur(P.vpbThresh)+')', '−'+eur(r.vpb1), {vcls:'neg'}) +
+    ln('VPB @ '+pct(P.vpb2)+' (above)', '−'+eur(r.vpb2), {vcls:'neg'}) +
+    ln('After-tax profit (distributable)', eur(r.atp), {cls:'total'}) +
+    ln('Effective VPB rate', r.pbt>0 ? pct(r.vpb/r.pbt) : '—', {cls:'muted'});
+
+  /* ----- BTW ----- */
+  document.getElementById('btwBody').innerHTML =
+    ln('Output BTW charged to clients', eur(r.outputBtw), {sub:pct(P.btw)+' on revenue'}) +
+    ln('Input BTW reclaimable on costs', '−'+eur(-r.inputBtw), {vcls:'neg', sub:pct(P.btw)+' on costs'}) +
+    ln('Net BTW payable', eur(r.netBtw), {cls:'total'}) +
+    ln('Collected from clients, then remitted — set it aside. Excluded from profit & total tax.', '', {cls:'muted'});
+
+  /* ----- salary (annual / monthly) ----- */
+  const m = v => eur(v/12);
+  document.getElementById('salBody').innerHTML = `
+    <table class="sal-tbl">
+      <thead><tr><th>Box 1 — salary</th><th>Annual</th><th>Monthly</th></tr></thead>
+      <tbody>
+        <tr><td>Gross salary</td><td class="num">${eur(r.salary)}</td><td class="num">${m(r.salary)}</td></tr>
+        <tr><td>Income tax (net of credits)</td><td class="num">−${eur(r.nit)}</td><td class="num">−${m(r.nit)}</td></tr>
+        <tr><td>Zvw health (${pct(P.zvwRate)})</td><td class="num">−${eur(r.zvw)}</td><td class="num">−${m(r.zvw)}</td></tr>
+        <tr class="tot"><td>Net salary in your account</td><td class="num">${eur(r.netSalary)}</td><td class="num">${m(r.netSalary)}</td></tr>
+      </tbody>
+    </table>
+    <div class="credit-note">Tax credits applied: algemene heffingskorting <b>${eur(r.ahk)}</b> + arbeidskorting <b>${eur(r.ak)}</b> = <b>${eur(r.ahk+r.ak)}</b> off the bracket tax.</div>`;
+
+  /* ----- dividend ----- */
+  document.getElementById('divBody').innerHTML =
+    ln('Dividend distributed', eur(r.dividend)) +
+    ln('Box 2 @ '+pct(P.box2r1)+' (first '+eur(P.box2thresh)+')', '−'+eur(r.box2a), {vcls:'neg'}) +
+    ln('Box 2 @ '+pct(P.box2r2)+' (above)', '−'+eur(r.box2b), {vcls:'neg'}) +
+    ln('Total Box 2 tax', '−'+eur(r.box2), {cls:'sub', vcls:'neg'}) +
+    ln('of which '+pct(P.dwht)+' withheld now as dividendbelasting', eur(r.dwht), {cls:'muted'}) +
+    ln('Net dividend in pocket', eur(r.netDiv), {cls:'total'});
+
+  /* ----- tax composition donut ----- */
+  const segs = TAXSEG.map(s => ({...s, v:Math.max(r[s.k],0)}));
+  const tot = segs.reduce((a,s)=>a+s.v,0) || 1;
+  buildDonut(segs, tot);
+  document.getElementById('donutTotal').textContent = eur(r.totalTax);
+  document.getElementById('donutPct').textContent = r.pbt>0 ? pct(r.taxPctEarnings)+' of earnings' : '';
+  document.getElementById('donutLegend').innerHTML = segs.map(s =>
+    `<div class="leg"><span class="sw" style="background:${s.c}"></span><span class="lt">${s.lbl}</span><span class="lv">${eur(s.v)} · ${(s.v/tot*100).toFixed(0)}%</span></div>`
+  ).join('');
+
+  /* ----- summary ----- */
+  document.getElementById('sumBody').innerHTML =
+    ln('Corporate tax (VPB)', eur(r.vpb)) +
+    ln('Box 1 income tax', eur(r.nit)) +
+    ln('Zvw health contribution', eur(r.zvw)) +
+    ln('Box 2 dividend tax', eur(r.box2)) +
+    ln('Total tax (excl. BTW)', eur(r.totalTax), {cls:'total'}) +
+    ln('Net cash to you', eur(r.netCash), {cls:'sub', vcls:'pos'}) +
+    ln('Retained in the BV', eurS(r.retained), {cls:'sub'}) +
+    ln('Tax as % of business earnings', pct(r.taxPctEarnings), {cls:'muted'}) +
+    ln('Effective rate on take-home', pct(r.effTakeHome), {cls:'muted'});
+
+  /* ----- payment calendar ----- */
+  const pay = [
+    {a:r.nit+r.zvw,    f:'Monthly',     nm:'Loonheffing on salary', who:'The BV (payroll)',
+      note:`Box 1 wage tax + Zvw, filed and paid each month within 1 month of the period — about <b>${eur((r.nit+r.zvw)/12)}/mo</b>. A prepayment of your Box 1 tax, reconciled in your return.`},
+    {a:r.netBtw,       f:'Quarterly',   nm:'BTW / VAT', who:'The BV',
+      note:'Return + payment within 1 month of each quarter-end (~30 Apr, 31 Jul, 31 Oct, 31 Jan). Money collected from clients — set it aside.'},
+    {a:r.dwht,         f:'Per dividend',nm:'Dividendbelasting (15%)', who:'The BV',
+      note:'Due within 1 month of the dividend being made available (AGM date). A December dividend is due ~end January. Prepayment credited against Box 2.'},
+    {a:r.vpb,          f:'Provisional + final', nm:'Vennootschapsbelasting', who:'The BV',
+      note:'Provisional assessment paid in instalments through the year; final return within 5 months of year-end (by 31 May, extension possible). Balance on the final assessment.'},
+    {a:r.box2-r.dwht,  f:'Annual',      nm:'Box 2 — balance after the 15%', who:'You (personally)',
+      note:'Settled via your personal income tax return, due 1 May of the following year. The 15% already withheld is credited against the total.'}
+  ];
+  document.getElementById('payBody').innerHTML = pay.map(p => `
+    <div class="pay">
+      <div class="amt"><div class="a tnum">${eur(p.a)}</div><div class="f">${p.f}</div></div>
+      <div class="body"><div class="nm">${p.nm}</div><div class="who">${p.who}</div><div class="note">${p.note}</div></div>
+    </div>`).join('');
+}
+
+/* ============ BUILD INPUT CONTROLS ============ */
+const inputWrap = document.getElementById('inputs');
+INPUTS.forEach(c => {
+  const el = document.createElement('div');
+  el.className = 'ctrl';
+  el.innerHTML = `
+    <div class="ctrl-head">
+      <label for="${c.id}">${c.label}${c.hint?`<span class="hint">${c.hint}</span>`:''}</label>
+      <div class="ctrl-val"><span class="pre">${c.unit||''}</span><input class="num" id="${c.id}-num" type="number" min="0" step="${c.numStep||c.step}" value="${c.val}"></div>
+    </div>
+    <input class="slider" id="${c.id}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.val}">`;
+  inputWrap.appendChild(el);
+
+  const slider = el.querySelector('.slider');
+  const num = el.querySelector('.num');
+  const fill = () => slider.style.setProperty('--fill', ((clamp(state[c.id],c.min,c.max)-c.min)/(c.max-c.min)*100)+'%');
+  slider.addEventListener('input', () => { state[c.id] = +slider.value; num.value = slider.value; fill(); render(); });
+  num.addEventListener('input', () => {
+    const v = num.value === '' ? 0 : +num.value;
+    state[c.id] = v; slider.value = clamp(v, c.min, c.max); fill(); render();
+  });
+  fill();
+});
+
+/* presets */
+const PRESETS = {
+  reset: {rate:100, hoursDay:8, workDays:260, vacation:25, cost:10000, salary:70000, dividend:80000},
+  lean:  {rate:100, hoursDay:8, workDays:260, vacation:25, cost:10000, salary:58000, dividend:80000}
+};
+function applyState(s){
+  Object.assign(state, s);
+  INPUTS.forEach(c => {
+    const slider = document.getElementById(c.id);
+    const num = document.getElementById(c.id+'-num');
+    slider.value = clamp(state[c.id], c.min, c.max);
+    num.value = state[c.id];
+    slider.style.setProperty('--fill', ((clamp(state[c.id],c.min,c.max)-c.min)/(c.max-c.min)*100)+'%');
+  });
+  render();
+}
+document.querySelectorAll('.presets button').forEach(b =>
+  b.addEventListener('click', () => applyState(PRESETS[b.dataset.preset])));
+
+/* ============ BUILD ASSUMPTION CONTROLS ============ */
+const assumpWrap = document.getElementById('assumpBody');
+let grid = null;
+PARAMS.forEach(p => {
+  if (p.group){
+    const h = document.createElement('div'); h.className='assump-grp'; h.textContent=p.group;
+    assumpWrap.appendChild(h);
+    grid = document.createElement('div'); grid.className='assump-grid';
+    assumpWrap.appendChild(grid);
+    return;
+  }
+  const disp = p.type==='pct' ? +(p.val*100).toFixed(4) : p.val;
+  const unit = p.type==='pct' ? '%' : '€';
+  const row = document.createElement('div'); row.className='prm';
+  row.innerHTML = `<label for="p-${p.id}">${p.label}</label>
+    <div class="pbox"><input id="p-${p.id}" type="number" step="any" value="${disp}"><span class="u">${unit}</span></div>`;
+  grid.appendChild(row);
+  row.querySelector('input').addEventListener('input', e => {
+    const raw = e.target.value === '' ? 0 : +e.target.value;
+    P[p.id] = p.type==='pct' ? raw/100 : raw;
+    render();
+  });
+});
+document.getElementById('resetParams').addEventListener('click', () => {
+  PARAMS.forEach(p => {
+    if (p.group) return;
+    P[p.id] = p.val;
+    const el = document.getElementById('p-'+p.id);
+    el.value = p.type==='pct' ? +(p.val*100).toFixed(4) : p.val;
+  });
+  render();
+});
+
+render();
+
+/* ---------- theme toggle ---------- */
+(function(){
+  const root = document.documentElement;
+  const setTheme = t => { root.setAttribute('data-theme', t); try{ localStorage.setItem('bvtax-theme', t); }catch(e){} };
+  if (!root.getAttribute('data-theme'))
+    setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.getElementById('themeToggle').addEventListener('click',
+    () => setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+})();
+</script>
+</body>
+</html>

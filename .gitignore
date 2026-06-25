@@ -1,0 +1,8 @@
+# Local source material — not part of the published site
+HANDOFF.md
+dutch_bv_tax_2026.xlsx
+model_scripts/
+
+# Local tooling / OS cruft
+.claude/
+.DS_Store
