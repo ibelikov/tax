@@ -297,7 +297,7 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
   <section class="kpis">
     <div class="kpi k-tax"><div class="label">Total tax</div><div class="val tnum" id="kpiTax">—</div><div class="sub">excl. BTW pass-through</div></div>
     <div class="kpi k-cash"><div class="label">Net cash to you</div><div class="val tnum" id="kpiCash">—</div><div class="sub">salary + dividend, after tax</div></div>
-    <div class="kpi k-rate"><div class="label">Effective rate (take-home)</div><div class="val tnum" id="kpiRate">—</div><div class="sub">on cash actually extracted</div></div>
+    <div class="kpi k-rate"><div class="label">Effective tax rate</div><div class="val tnum" id="kpiRate">—</div><div class="sub">on take-home (salary + dividend)</div></div>
     <div class="kpi k-ret"><div class="label">Retained in the BV</div><div class="val tnum" id="kpiRet">—</div><div class="sub">after-tax profit kept inside</div></div>
   </section>
 
@@ -720,7 +720,7 @@ function render(){
     ln('Net cash to you', eur(r.netCash), {cls:'sub', vcls:'pos'}) +
     ln('Retained in the BV', eurS(r.retained), {cls:'sub'}) +
     ln('Tax as % of business earnings', pct(r.taxPctEarnings), {cls:'muted'}) +
-    ln('Effective rate on take-home', pct(r.effTakeHome), {cls:'muted'});
+    ln('Effective tax rate on take-home', pct(r.effTakeHome), {cls:'muted'});
 
   /* ----- payment calendar ----- */
   const pay = [
