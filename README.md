@@ -5,7 +5,7 @@ shareholder/director (**DGA**), for tax year 2026. Enter an hourly rate, billabl
 a salary and a dividend; it works through VPB, Box 1, Zvw, Box 2 and BTW to your
 take-home pay and effective rates, and updates as you drag the inputs.
 
-**Live:** https://ibelikov.github.io/tax/
+**Live:** https://bvtax.nl
 
 ## Running it
 
