@@ -43,5 +43,5 @@ machine, so whatever figures you enter stay local and never reach a server.
 
 ## Tests
 
-`node --test tests/` exercises the tax model. The same suite runs in CI on every
-push.
+`node --test tests/*.test.mjs` exercises the tax model. The same suite runs in CI
+on every push.
