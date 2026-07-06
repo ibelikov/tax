@@ -290,6 +290,13 @@ footer .src{color:var(--faint);font-size:11.5px;margin-top:8px}
   .kpis{grid-template-columns:1fr 1fr}
   .pay .amt{flex-basis:96px}
 }
+@media print{
+  body{background:#fff}
+  .theme-btn,.presets,input.slider,.chart-tip{display:none}
+  .card,details.assump,.kpi{box-shadow:none;break-inside:avoid}
+  .grid{display:block}
+  .sidebar{position:static}
+}
 </style>
 <script>
 try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',_t);}catch(e){document.documentElement.setAttribute('data-theme','light');}
@@ -615,6 +622,14 @@ function ln(label, value, opt){
 const chartTip = document.getElementById('chartTip');
 const moveTip = e => { chartTip.style.left = e.clientX + 'px'; chartTip.style.top = e.clientY + 'px'; };
 const hideTip = () => chartTip.classList.remove('show');
+const showTip = (html, e) => { chartTip.innerHTML = html; chartTip.classList.add('show'); moveTip(e); };
+function attachTip(el, get){
+  el.addEventListener('mouseenter', e => { const h = get(); if (h) showTip(h, e); });
+  el.addEventListener('mousemove', moveTip);
+  el.addEventListener('mouseleave', hideTip);
+  el.addEventListener('click', e => { const h = get(); if (h){ showTip(h, e); e.stopPropagation(); } });
+}
+document.addEventListener('click', hideTip);
 
 /* ---------- flow bar ---------- */
 const FLOW = [
@@ -633,9 +648,7 @@ FLOW.forEach(f => {
   const d = document.createElement('div');
   d.className = 'flow-seg';
   d.style.background = f.c;
-  d.addEventListener('mouseenter', e => { if (d._tip) { chartTip.innerHTML = d._tip; chartTip.classList.add('show'); moveTip(e); } });
-  d.addEventListener('mousemove', moveTip);
-  d.addEventListener('mouseleave', hideTip);
+  attachTip(d, () => d._tip);
   flowBar.appendChild(d);
   flowSegs[f.k] = d;
 });
@@ -667,9 +680,7 @@ function buildDonut(segs, tot){
     c.setAttribute('stroke-dashoffset', -start);
     const pctTxt = (frac * 100).toFixed(1) + '%';
     const html = `<span class="tdot" style="background:${s.c}"></span>${s.lbl}<span class="tval">${eur(s.v)}</span><span class="tpct">${pctTxt}</span>`;
-    c.addEventListener('mouseenter', e => { chartTip.innerHTML = html; chartTip.classList.add('show'); moveTip(e); });
-    c.addEventListener('mousemove', moveTip);
-    c.addEventListener('mouseleave', hideTip);
+    attachTip(c, () => html);
     const t = document.createElementNS(SVGNS, 'title');
     t.textContent = `${s.lbl}: ${eur(s.v)} (${pctTxt})`;
     c.appendChild(t);
@@ -787,6 +798,7 @@ function optHover(e){
   moveTip(e);
 }
 optSvg.addEventListener('mousemove', optHover);
+optSvg.addEventListener('click', e => { optHover(e); e.stopPropagation(); });
 optSvg.addEventListener('mouseleave', () => {
   hideTip();
   const dot = document.getElementById('optDot');
@@ -959,7 +971,7 @@ INPUTS.forEach(c => {
   el.innerHTML = `
     <div class="ctrl-head">
       <label for="${c.id}">${c.label}${c.hint?`<span class="hint">${c.hint}</span>`:''}</label>
-      <div class="ctrl-val"><span class="pre">${c.unit||''}</span><input class="num" id="${c.id}-num" type="number" min="0" step="${c.numStep||c.step}" value="${state[c.id]}"></div>
+      <div class="ctrl-val"><span class="pre">${c.unit||''}</span><input class="num" id="${c.id}-num" type="number" inputmode="decimal" min="0" step="${c.numStep||c.step}" value="${state[c.id]}"></div>
     </div>
     <input class="slider" id="${c.id}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${clamp(state[c.id],c.min,c.max)}">`;
   inputWrap.appendChild(el);
@@ -1032,7 +1044,7 @@ PARAMS.forEach(p => {
   const unit = p.type==='pct' ? '%' : '€';
   const row = document.createElement('div'); row.className='prm';
   row.innerHTML = `<label for="p-${p.id}">${p.label}</label>
-    <div class="pbox"><input id="p-${p.id}" type="number" step="any" value="${disp}"><span class="u">${unit}</span></div>`;
+    <div class="pbox"><input id="p-${p.id}" type="number" inputmode="decimal" step="any" value="${disp}"><span class="u">${unit}</span></div>`;
   grid.appendChild(row);
   row.querySelector('input').addEventListener('input', e => {
     const raw = e.target.value === '' ? 0 : +e.target.value;
