@@ -333,6 +333,7 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
           <div class="presets">
             <button data-preset="reset">Reset</button>
             <button data-preset="lean">Min. salary</button>
+            <button id="copyLink" title="Copy a link to this exact scenario">Copy link</button>
           </div>
         </div>
       </div>
@@ -777,6 +778,32 @@ function render(){
     </div>`).join('');
 }
 
+/* ============ SCENARIO PERSISTENCE (URL hash + localStorage) ============ */
+const DEFAULTS = {...state};
+const HASH_KEYS = [['rate','rate'],['h','hoursDay'],['days','workDays'],['vac','vacation'],['cost','cost'],['sal','salary'],['div','dividend']];
+function stateToQS(){
+  const q = new URLSearchParams();
+  HASH_KEYS.forEach(([k,id]) => { if (state[id] !== DEFAULTS[id]) q.set(k, state[id]); });
+  return q.toString();
+}
+function saveState(){
+  const qs = stateToQS();
+  try{ history.replaceState(null, '', qs ? '#'+qs : location.pathname + location.search); }catch(e){}
+  try{ localStorage.setItem('bvtax-state', qs); }catch(e){}
+}
+let saveT;
+const saveStateSoon = () => { clearTimeout(saveT); saveT = setTimeout(saveState, 250); };
+function loadState(){
+  let qs = location.hash.slice(1);
+  if (!qs){ try{ qs = localStorage.getItem('bvtax-state') || ''; }catch(e){} }
+  if (!qs) return;
+  const q = new URLSearchParams(qs);
+  HASH_KEYS.forEach(([k,id]) => {
+    if (q.has(k)){ const v = +q.get(k); if (isFinite(v)) state[id] = v; }
+  });
+}
+loadState();
+
 /* ============ BUILD INPUT CONTROLS ============ */
 const inputWrap = document.getElementById('inputs');
 INPUTS.forEach(c => {
@@ -785,18 +812,18 @@ INPUTS.forEach(c => {
   el.innerHTML = `
     <div class="ctrl-head">
       <label for="${c.id}">${c.label}${c.hint?`<span class="hint">${c.hint}</span>`:''}</label>
-      <div class="ctrl-val"><span class="pre">${c.unit||''}</span><input class="num" id="${c.id}-num" type="number" min="0" step="${c.numStep||c.step}" value="${c.val}"></div>
+      <div class="ctrl-val"><span class="pre">${c.unit||''}</span><input class="num" id="${c.id}-num" type="number" min="0" step="${c.numStep||c.step}" value="${state[c.id]}"></div>
     </div>
-    <input class="slider" id="${c.id}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${c.val}">`;
+    <input class="slider" id="${c.id}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${clamp(state[c.id],c.min,c.max)}">`;
   inputWrap.appendChild(el);
 
   const slider = el.querySelector('.slider');
   const num = el.querySelector('.num');
   const fill = () => slider.style.setProperty('--fill', ((clamp(state[c.id],c.min,c.max)-c.min)/(c.max-c.min)*100)+'%');
-  slider.addEventListener('input', () => { state[c.id] = +slider.value; num.value = slider.value; fill(); render(); });
+  slider.addEventListener('input', () => { state[c.id] = +slider.value; num.value = slider.value; fill(); render(); saveStateSoon(); });
   num.addEventListener('input', () => {
     const v = num.value === '' ? 0 : +num.value;
-    state[c.id] = v; slider.value = clamp(v, c.min, c.max); fill(); render();
+    state[c.id] = v; slider.value = clamp(v, c.min, c.max); fill(); render(); saveStateSoon();
   });
   fill();
 });
@@ -816,9 +843,21 @@ function applyState(s){
     slider.style.setProperty('--fill', ((clamp(state[c.id],c.min,c.max)-c.min)/(c.max-c.min)*100)+'%');
   });
   render();
+  saveState();
 }
-document.querySelectorAll('.presets button').forEach(b =>
+document.querySelectorAll('.presets button[data-preset]').forEach(b =>
   b.addEventListener('click', () => applyState(PRESETS[b.dataset.preset])));
+
+const copyBtn = document.getElementById('copyLink');
+copyBtn.addEventListener('click', () => {
+  const qs = stateToQS();
+  const url = location.origin + location.pathname + (qs ? '#'+qs : '');
+  const done = ok => { copyBtn.textContent = ok ? 'Copied' : 'Copy failed'; setTimeout(() => copyBtn.textContent = 'Copy link', 1400); };
+  if (navigator.clipboard && navigator.clipboard.writeText)
+    navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
+  else done(false);
+});
+window.addEventListener('hashchange', () => { loadState(); applyState({}); });
 
 /* ============ BUILD ASSUMPTION CONTROLS ============ */
 const assumpWrap = document.getElementById('assumpBody');
