@@ -434,8 +434,7 @@ const COL = {
   cost:'#9aa6b4', vpb:'#7f1d1d', nit:'#b91c1c', zvw:'#ef4444',
   box2:'#fb7185', netSalary:'#16a34a', netDiv:'#5fce86', retained:'#0e7490'
 };
-const GEBRUIKELIJK_LOON = 58000;
-
+/* MODEL-START */
 /* ---------- inputs ---------- */
 const INPUTS = [
   {id:'rate',     label:'Hourly rate',          unit:'€', min:0,   max:300,    step:5,    numStep:'0.01', val:100, hint:'excl. BTW'},
@@ -461,13 +460,18 @@ const PARAMS = [
   {id:'b2r',        label:'Bracket 2 rate',                 val:0.3756,  type:'pct'},
   {id:'b2lim',      label:'Bracket 2 limit',                val:78426,   type:'eur'},
   {id:'b3r',        label:'Bracket 3 rate',                 val:0.495,   type:'pct'},
-  {group:'Heffingskortingen (credits)'},
-  {id:'ahkMax',     label:'Algemene heffingskorting — max', val:3115,    type:'eur'},
-  {id:'ahkStart',   label:'AHK phase-out start',            val:29736,   type:'eur'},
-  {id:'ahkRate',    label:'AHK phase-out rate',             val:0.06398, type:'pct'},
-  {id:'akMax',      label:'Arbeidskorting — max',           val:5685,    type:'eur'},
-  {id:'akStart',    label:'Arbeidskorting phase-out start', val:45592,   type:'eur'},
-  {id:'akRate',     label:'Arbeidskorting phase-out rate',  val:0.0651,  type:'pct'},
+  {group:'Algemene heffingskorting'},
+  {id:'ahkMax',     label:'Maximum credit',                 val:3115,    type:'eur'},
+  {id:'ahkStart',   label:'Phase-out start (verzamelinkomen)', val:29736, type:'eur'},
+  {id:'ahkRate',    label:'Phase-out rate',                 val:0.06398, type:'pct'},
+  {group:'Arbeidskorting'},
+  {id:'ak1lim',     label:'Build-up limit 1',               val:11965,   type:'eur'},
+  {id:'ak1r',       label:'Build-up rate 1',                val:0.08324, type:'pct'},
+  {id:'ak2lim',     label:'Build-up limit 2',               val:25845,   type:'eur'},
+  {id:'ak2r',       label:'Build-up rate 2',                val:0.31009, type:'pct'},
+  {id:'ak3r',       label:'Build-up rate 3',                val:0.0195,  type:'pct'},
+  {id:'akStart',    label:'Phase-out start',                val:45592,   type:'eur'},
+  {id:'akRate',     label:'Phase-out rate',                 val:0.0651,  type:'pct'},
   {group:'Health contribution (Zvw)'},
   {id:'zvwRate',    label:'Zvw rate (DGA bijdrage)',        val:0.0485,  type:'pct'},
   {id:'zvwMax',     label:'Zvw max contribution base',      val:79409,   type:'eur'},
@@ -475,7 +479,9 @@ const PARAMS = [
   {id:'box2r1',     label:'Box 2 rate — bracket 1',         val:0.245,   type:'pct'},
   {id:'box2thresh', label:'Box 2 bracket threshold',        val:68843,   type:'eur'},
   {id:'box2r2',     label:'Box 2 rate — bracket 2',         val:0.31,    type:'pct'},
-  {id:'dwht',       label:'Dividend withholding (prepaid)', val:0.15,    type:'pct'}
+  {id:'dwht',       label:'Dividend withholding (prepaid)', val:0.15,    type:'pct'},
+  {group:'DGA'},
+  {id:'gebrLoon',   label:'Gebruikelijk loon (minimum salary)', val:58000, type:'eur'}
 ];
 
 const state = {};
@@ -483,47 +489,62 @@ const P = {};
 INPUTS.forEach(c => state[c.id] = c.val);
 PARAMS.forEach(p => { if (!p.group) P[p.id] = p.val; });
 
-/* ---------- the model (ported 1:1 from the workbook formulas) ---------- */
-function calc(){
-  const billDays = Math.max(state.workDays - state.vacation, 0);
-  const revenue  = state.rate * state.hoursDay * billDays;
-  const cost     = state.cost;
-  const salary   = state.salary;
-  const dividend = state.dividend;
+/* ---------- credit curves ---------- */
+const ahkFor = income => Math.max(0, P.ahkMax - P.ahkRate * Math.max(income - P.ahkStart, 0));
+function akFor(income){
+  const build = P.ak1r * Math.min(income, P.ak1lim)
+    + P.ak2r * Math.max(Math.min(income, P.ak2lim) - P.ak1lim, 0)
+    + P.ak3r * Math.max(Math.min(income, P.akStart) - P.ak2lim, 0);
+  return Math.max(0, build - P.akRate * Math.max(income - P.akStart, 0));
+}
+const box2On = d => P.box2r1 * Math.min(d, P.box2thresh) + P.box2r2 * Math.max(d - P.box2thresh, 0);
+
+/* ---------- the model ---------- */
+function calc(s){
+  s = s || state;
+  const billDays = Math.max(s.workDays - s.vacation, 0);
+  const revenue  = s.rate * s.hoursDay * billDays;
+  const cost     = s.cost;
+  const salary   = s.salary;
+  const dividend = s.dividend;
 
   // BTW (pass-through)
   const outputBtw = P.btw * revenue;
   const inputBtw  = -P.btw * cost;
   const netBtw    = outputBtw + inputBtw;
 
-  // Corporate
-  const pbt  = revenue - salary - cost;
-  const vpb1 = P.vpb1 * Math.min(pbt, P.vpbThresh);
-  const vpb2 = P.vpb2 * Math.max(pbt - P.vpbThresh, 0);
+  // Corporate — a loss carries forward, it is not refunded
+  const pbt     = revenue - salary - cost;
+  const taxable = Math.max(pbt, 0);
+  const vpb1 = P.vpb1 * Math.min(taxable, P.vpbThresh);
+  const vpb2 = P.vpb2 * Math.max(taxable - P.vpbThresh, 0);
   const vpb  = vpb1 + vpb2;
   const atp  = pbt - vpb;
 
-  // Box 1 — salary
+  // Box 2 — dividend
+  const box2Gross = box2On(dividend);
+  const box2a = P.box2r1 * Math.min(dividend, P.box2thresh);
+  const box2b = box2Gross - box2a;
+  const dwht  = P.dwht * dividend;
+
+  // Box 1 — salary; AHK phases out on verzamelinkomen (Box 1 + Box 2)
   const t1 = P.b1r * Math.min(salary, P.b1lim);
   const t2 = P.b2r * Math.max(Math.min(salary, P.b2lim) - P.b1lim, 0);
   const t3 = P.b3r * Math.max(salary - P.b2lim, 0);
   const bracketTax = t1 + t2 + t3;
-  const ahk = Math.max(0, P.ahkMax - P.ahkRate * Math.max(salary - P.ahkStart, 0));
-  let ak;
-  if (salary < 11965)        ak = 0.08324 * salary;
-  else if (salary < 25845)   ak = 996  + 0.31009 * (salary - 11965);
-  else if (salary < P.akStart) ak = 5300 + 0.0195 * (salary - 25845);
-  else                       ak = P.akMax - P.akRate * (salary - P.akStart);
-  ak = Math.max(0, ak);
-  const nit = bracketTax - ahk - ak;
+  const ahk = ahkFor(salary + dividend);
+  const ahkClaw = ahkFor(salary) - ahk;
+  const ak  = akFor(salary);
+
+  // credits offset the combined Box 1 + Box 2 levy, never below zero
+  const credits   = ahk + ak;
+  const creditsB1 = Math.min(credits, bracketTax);
+  const creditsB2 = Math.min(credits - creditsB1, box2Gross);
+  const creditsUnused = credits - creditsB1 - creditsB2;
+  const nit = bracketTax - creditsB1;
   const zvw = P.zvwRate * Math.min(salary, P.zvwMax);
   const netSalary = salary - nit - zvw;
-
-  // Box 2 — dividend
-  const box2a = P.box2r1 * Math.min(dividend, P.box2thresh);
-  const box2b = P.box2r2 * Math.max(dividend - P.box2thresh, 0);
-  const box2  = box2a + box2b;
-  const dwht  = P.dwht * dividend;
+  const box2 = box2Gross - creditsB2;
   const netDiv = dividend - box2;
 
   // Summary
@@ -536,10 +557,11 @@ function calc(){
     ? (nit + zvw + box2 + vpbDiv) / (salary + dividend + vpbDiv) : 0;
 
   return {revenue,billDays,cost,salary,dividend,outputBtw,inputBtw,netBtw,
-    pbt,vpb1,vpb2,vpb,atp,t1,t2,t3,ahk,ak,nit,zvw,netSalary,
-    box2a,box2b,box2,dwht,netDiv,totalTax,netCash,retained,
+    pbt,vpb1,vpb2,vpb,atp,t1,t2,t3,ahk,ahkClaw,ak,creditsB1,creditsB2,creditsUnused,
+    nit,zvw,netSalary,box2a,box2b,box2,dwht,netDiv,totalTax,netCash,retained,
     taxPctEarnings,effTakeHome};
 }
+/* MODEL-END */
 
 /* ---------- ledger row helper ---------- */
 function ln(label, value, opt){
@@ -637,10 +659,10 @@ function render(){
   } else wDiv.classList.remove('show');
 
   const wSal = document.getElementById('warnSal');
-  if (r.salary < GEBRUIKELIJK_LOON){
+  if (r.salary < P.gebrLoon){
     wSal.classList.add('show');
     document.getElementById('warnSalTxt').innerHTML =
-      `Salary of <b>${eur(r.salary)}</b> is below the 2026 customary-salary minimum (<b>${eur(GEBRUIKELIJK_LOON)}</b>, gebruikelijk loon). The Belastingdienst may require a higher DGA salary.`;
+      `Salary of <b>${eur(r.salary)}</b> is below the 2026 customary-salary minimum (<b>${eur(P.gebrLoon)}</b>, gebruikelijk loon). The Belastingdienst may require a higher DGA salary.`;
   } else wSal.classList.remove('show');
 
   /* ----- flow bar ----- */
@@ -667,7 +689,8 @@ function render(){
     ln('Profit before tax', eur(r.pbt), {cls:'sub'}) +
     ln('VPB @ '+pct(P.vpb1)+' (first '+eur(P.vpbThresh)+')', '−'+eur(r.vpb1), {vcls:'neg'}) +
     ln('VPB @ '+pct(P.vpb2)+' (above)', '−'+eur(r.vpb2), {vcls:'neg'}) +
-    ln('After-tax profit (distributable)', eur(r.atp), {cls:'total'}) +
+    (r.pbt < 0 ? ln('Loss — no VPB due; carried forward against future profits, not refunded', '', {cls:'muted'}) : '') +
+    ln('After-tax profit (distributable)', eurS(r.atp), {cls:'total'}) +
     ln('Effective VPB rate', r.pbt>0 ? pct(r.vpb/r.pbt) : '—', {cls:'muted'});
 
   /* ----- BTW ----- */
@@ -689,14 +712,16 @@ function render(){
         <tr class="tot"><td>Net salary in your account</td><td class="num">${eur(r.netSalary)}</td><td class="num">${m(r.netSalary)}</td></tr>
       </tbody>
     </table>
-    <div class="credit-note">Tax credits applied: algemene heffingskorting <b>${eur(r.ahk)}</b> + arbeidskorting <b>${eur(r.ak)}</b> = <b>${eur(r.ahk+r.ak)}</b> off the bracket tax.</div>`;
+    <div class="credit-note">Tax credits: algemene heffingskorting <b>${eur(r.ahk)}</b> + arbeidskorting <b>${eur(r.ak)}</b>. Applied: <b>${eur(r.creditsB1)}</b> against Box 1${r.creditsB2 > .5 ? `, <b>${eur(r.creditsB2)}</b> against Box 2` : ''}${r.creditsUnused > .5 ? ` — ${eur(r.creditsUnused)} unused (credits are non-refundable)` : ''}.</div>`;
 
   /* ----- dividend ----- */
   document.getElementById('divBody').innerHTML =
     ln('Dividend distributed', eur(r.dividend)) +
     ln('Box 2 @ '+pct(P.box2r1)+' (first '+eur(P.box2thresh)+')', '−'+eur(r.box2a), {vcls:'neg'}) +
     ln('Box 2 @ '+pct(P.box2r2)+' (above)', '−'+eur(r.box2b), {vcls:'neg'}) +
+    (r.creditsB2 > .5 ? ln('Unused heffingskortingen offset', '+'+eur(r.creditsB2), {vcls:'pos'}) : '') +
     ln('Total Box 2 tax', '−'+eur(r.box2), {cls:'sub', vcls:'neg'}) +
+    (r.ahkClaw > .5 ? ln('This dividend also claws back '+eur(r.ahkClaw)+' of algemene heffingskorting via the verzamelinkomen phase-out — counted under Box 1.', '', {cls:'muted'}) : '') +
     ln('of which '+pct(P.dwht)+' withheld now as dividendbelasting', eur(r.dwht), {cls:'muted'}) +
     ln('Net dividend in pocket', eur(r.netDiv), {cls:'total'});
 
@@ -733,11 +758,11 @@ function render(){
     {a:r.vpb,          f:'Provisional + final', nm:'Vennootschapsbelasting', who:'The BV',
       note:'Provisional assessment paid in instalments through the year; final return within 5 months of year-end (by 31 May, extension possible). Balance on the final assessment.'},
     {a:r.box2-r.dwht,  f:'Annual',      nm:'Box 2 — balance after the 15%', who:'You (personally)',
-      note:'Settled via your personal income tax return, due 1 May of the following year. The 15% already withheld is credited against the total.'}
+      note:'Settled via your personal income tax return, due 1 May of the following year. The 15% already withheld is credited against the total; a negative balance here means a refund.'}
   ];
   document.getElementById('payBody').innerHTML = pay.map(p => `
     <div class="pay">
-      <div class="amt"><div class="a tnum">${eur(p.a)}</div><div class="f">${p.f}</div></div>
+      <div class="amt"><div class="a tnum">${eurS(p.a)}</div><div class="f">${p.f}</div></div>
       <div class="body"><div class="nm">${p.nm}</div><div class="who">${p.who}</div><div class="note">${p.note}</div></div>
     </div>`).join('');
 }
