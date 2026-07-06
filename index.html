@@ -116,6 +116,7 @@ header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:2
 .theme-btn:hover{border-color:var(--line-strong)}
 .theme-btn:active{transform:scale(.94)}
 .theme-btn .ic-sun{display:none}
+.lang-btn{width:auto;padding:0 13px;font:700 12.5px/1 inherit;letter-spacing:.05em}
 [data-theme="dark"] .theme-btn .ic-moon{display:none}
 [data-theme="dark"] .theme-btn .ic-sun{display:block}
 
@@ -320,22 +321,23 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
         <span class="flag" aria-hidden="true"></span>
         Dutch BV · DGA Tax Model
       </h1>
-      <p>Corporate and personal tax for a Dutch BV with a single shareholder/director. Drag the inputs — every euro of tax recalculates live.</p>
+      <p id="brandSub">Corporate and personal tax for a Dutch BV with a single shareholder/director. Drag the inputs — every euro of tax recalculates live.</p>
     </div>
     <div class="head-right">
+      <button id="langToggle" class="theme-btn lang-btn" type="button" aria-label="Switch language">NL</button>
       <button id="themeToggle" class="theme-btn" type="button" aria-label="Toggle light or dark theme" title="Toggle light / dark">
         <svg class="ic-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
         <svg class="ic-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
       </button>
-      <div class="year-badge"><span class="dot"></span>Tax year 2026</div>
+      <div class="year-badge"><span class="dot"></span><span id="yearTxt">Tax year 2026</span></div>
     </div>
   </header>
 
   <section class="kpis">
-    <div class="kpi k-tax"><div class="label">Total tax</div><div class="val tnum" id="kpiTax">—</div><div class="sub">excl. BTW pass-through</div></div>
-    <div class="kpi k-cash"><div class="label">Net cash to you</div><div class="val tnum" id="kpiCash">—</div><div class="sub">salary + dividend, after tax</div></div>
-    <div class="kpi k-rate"><div class="label">Effective tax rate</div><div class="val tnum" id="kpiRate">—</div><div class="sub">on take-home (salary + dividend)</div></div>
-    <div class="kpi k-ret"><div class="label">Retained in the BV</div><div class="val tnum" id="kpiRet">—</div><div class="sub">after-tax profit kept inside</div></div>
+    <div class="kpi k-tax"><div class="label" id="kTaxL">Total tax</div><div class="val tnum" id="kpiTax">—</div><div class="sub" id="kTaxS">excl. BTW pass-through</div></div>
+    <div class="kpi k-cash"><div class="label" id="kCashL">Net cash to you</div><div class="val tnum" id="kpiCash">—</div><div class="sub" id="kCashS">salary + dividend, after tax</div></div>
+    <div class="kpi k-rate"><div class="label" id="kRateL">Effective tax rate</div><div class="val tnum" id="kpiRate">—</div><div class="sub" id="kRateS">on take-home (salary + dividend)</div></div>
+    <div class="kpi k-ret"><div class="label" id="kRetL">Retained in the BV</div><div class="val tnum" id="kpiRet">—</div><div class="sub" id="kRetS">after-tax profit kept inside</div></div>
   </section>
 
   <div class="grid">
@@ -345,21 +347,21 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
       <div class="card">
         <div class="card-h">
           <span class="ico" style="background:#2563eb">€</span>
-          <h2>Your inputs</h2>
-          <span class="tag">editable</span>
+          <h2 id="inputsH">Your inputs</h2>
+          <span class="tag" id="inputsTag">editable</span>
         </div>
         <div class="card-b">
           <div id="inputs"></div>
           <div class="revenue-readout">
             <div class="rr-left">
-              <span class="l">Annual revenue (excl. BTW)</span>
+              <span class="l" id="revLbl">Annual revenue (excl. BTW)</span>
               <span class="l2" id="revSub">—</span>
             </div>
             <span class="v tnum" id="revOut">—</span>
           </div>
           <div class="presets">
-            <button data-preset="reset">Reset</button>
-            <button data-preset="lean">Min. salary</button>
+            <button data-preset="reset" id="btnReset">Reset</button>
+            <button data-preset="lean" id="btnLean">Min. salary</button>
             <button id="copyLink" title="Copy a link to this exact scenario">Copy link</button>
           </div>
         </div>
@@ -376,7 +378,7 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
       <div class="card">
         <div class="card-h">
           <span class="ico" style="background:linear-gradient(135deg,#16a34a,#0e7490)">↳</span>
-          <h2>Where every euro of revenue goes</h2>
+          <h2 id="flowH">Where every euro of revenue goes</h2>
           <span class="tag" id="flowTotal">—</span>
         </div>
         <div class="card-b">
@@ -389,11 +391,11 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
       <!-- Corporate + BTW -->
       <div class="cards-2" style="margin-bottom:20px">
         <div class="card">
-          <div class="card-h"><span class="ico" style="background:#7f1d1d">1</span><h2>Corporate — the BV</h2></div>
+          <div class="card-h"><span class="ico" style="background:#7f1d1d">1</span><h2 id="corpH">Corporate — the BV</h2></div>
           <div class="card-b" id="corpBody"></div>
         </div>
         <div class="card">
-          <div class="card-h"><span class="ico" style="background:#0891b2">%</span><h2>BTW / VAT</h2><span class="tag">pass-through</span></div>
+          <div class="card-h"><span class="ico" style="background:#0891b2">%</span><h2>BTW / VAT</h2><span class="tag" id="btwTag">pass-through</span></div>
           <div class="card-b" id="btwBody"></div>
         </div>
       </div>
@@ -401,18 +403,18 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
       <!-- Salary + Dividend -->
       <div class="cards-2" style="margin-bottom:20px">
         <div class="card">
-          <div class="card-h"><span class="ico" style="background:#b91c1c">2</span><h2>Salary — Box 1</h2></div>
+          <div class="card-h"><span class="ico" style="background:#b91c1c">2</span><h2 id="salH">Salary — Box 1</h2></div>
           <div class="card-b" id="salBody"></div>
         </div>
         <div class="card">
-          <div class="card-h"><span class="ico" style="background:#be123c">3</span><h2>Dividend — Box 2</h2></div>
+          <div class="card-h"><span class="ico" style="background:#be123c">3</span><h2 id="divH">Dividend — Box 2</h2></div>
           <div class="card-b" id="divBody"></div>
         </div>
       </div>
 
       <!-- Optimiser -->
       <div class="card">
-        <div class="card-h"><span class="ico" style="background:linear-gradient(135deg,#7c3aed,#2563eb)">⇄</span><h2>Salary / dividend optimiser</h2><span class="tag" id="optTag">—</span></div>
+        <div class="card-h"><span class="ico" style="background:linear-gradient(135deg,#7c3aed,#2563eb)">⇄</span><h2 id="optH">Salary / dividend optimiser</h2><span class="tag" id="optTag">—</span></div>
         <div class="card-b">
           <div class="opt-row">
             <div>
@@ -426,49 +428,49 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
 
       <!-- BV vs eenmanszaak -->
       <div class="card">
-        <div class="card-h"><span class="ico" style="background:#0e7490">Δ</span><h2>BV vs eenmanszaak (ZZP)</h2><span class="tag">same revenue &amp; costs</span></div>
+        <div class="card-h"><span class="ico" style="background:#0e7490">Δ</span><h2>BV vs eenmanszaak (ZZP)</h2><span class="tag" id="zzpTag">same revenue &amp; costs</span></div>
         <div class="card-b" id="zzpBody"></div>
       </div>
 
       <!-- Tax composition + Summary -->
       <div class="cards-2" style="margin-bottom:20px">
         <div class="card">
-          <div class="card-h"><span class="ico" style="background:#dc2626">◔</span><h2>Tax composition</h2></div>
+          <div class="card-h"><span class="ico" style="background:#dc2626">◔</span><h2 id="donutH">Tax composition</h2></div>
           <div class="card-b">
             <div class="donut-row">
               <div class="donut" id="donut">
                 <svg id="donutSvg" viewBox="0 0 200 200" aria-hidden="true"><g id="donutSegs" transform="rotate(-90 100 100)"></g></svg>
-                <div class="hole"><div class="t">Total tax</div><div class="n tnum" id="donutTotal">—</div><div class="p tnum" id="donutPct">—</div></div>
+                <div class="hole"><div class="t" id="holeT">Total tax</div><div class="n tnum" id="donutTotal">—</div><div class="p tnum" id="donutPct">—</div></div>
               </div>
               <div class="donut-legend" id="donutLegend"></div>
             </div>
           </div>
         </div>
         <div class="card">
-          <div class="card-h"><span class="ico" style="background:var(--navy-deep)">Σ</span><h2>Summary</h2></div>
+          <div class="card-h"><span class="ico" style="background:var(--navy-deep)">Σ</span><h2 id="sumH">Summary</h2></div>
           <div class="card-b" id="sumBody"></div>
         </div>
       </div>
 
       <!-- Payment calendar -->
       <div class="card">
-        <div class="card-h"><span class="ico" style="background:#475569">⏱</span><h2>When each tax is paid</h2><span class="tag">calendar-year BV</span></div>
+        <div class="card-h"><span class="ico" style="background:#475569">⏱</span><h2 id="payH">When each tax is paid</h2><span class="tag" id="payTag">calendar-year BV</span></div>
         <div class="card-b" id="payBody"></div>
       </div>
 
       <!-- Assumptions -->
       <details class="assump">
-        <summary><span class="ico">⚙</span>2026 tax parameters <span class="chev">›</span></summary>
+        <summary><span class="ico">⚙</span><span id="assumpH">2026 tax parameters</span> <span class="chev">›</span></summary>
         <div class="assump-b">
-          <p style="color:var(--muted);font-size:12.5px;margin:8px 0 4px">Every rate and threshold the model reads. Edit any cell to test a different year or scenario — the whole page recalculates.</p>
+          <p style="color:var(--muted);font-size:12.5px;margin:8px 0 4px" id="assumpIntro">Every rate and threshold the model reads. Edit any cell to test a different year or scenario — the whole page recalculates.</p>
           <div id="assumpBody"></div>
           <div class="assump-actions"><button id="resetParams">Reset to 2026 figures</button></div>
         </div>
       </details>
 
       <footer>
-        <b>This is a planning model, not tax advice.</b> It assumes a single shareholder/DGA below AOW age, a Dec 31 year-end, and the low Zvw "bijdrage" rate (4.85%) withheld from the DGA. The algemene heffingskorting phases out on verzamelinkomen (salary plus your Box 2 share); heffingskortingen offset the combined Box 1 + Box 2 levy and are never refundable. The fiscal-partner option splits the dividend 50/50 and assumes the partner's own credits are unaffected. It ignores Box 3, the 30% ruling, mortgage interest, pension build-up, prior-year retained earnings and the gebruikelijkloon comparison test — the customary-salary minimum is an editable parameter, flagged but not enforced. Confirm the structure and the Zvw treatment with a Dutch accountant before acting.
-        <div class="src">Sources: Belastingdienst (voorlopige aanslag 2026; dividendbelasting; VPB), KVK 2026 rates, Salaris Vanmorgen (Zvw 2026), De Zaak (Box 2 2026).</div>
+        <span id="footTxt"><b>This is a planning model, not tax advice.</b> It assumes a single shareholder/DGA below AOW age, a Dec 31 year-end, and the low Zvw "bijdrage" rate (4.85%) withheld from the DGA. The algemene heffingskorting phases out on verzamelinkomen (salary plus your Box 2 share); heffingskortingen offset the combined Box 1 + Box 2 levy and are never refundable. The fiscal-partner option splits the dividend 50/50 and assumes the partner's own credits are unaffected. It ignores Box 3, the 30% ruling, mortgage interest, pension build-up, prior-year retained earnings and the gebruikelijkloon comparison test — the customary-salary minimum is an editable parameter, flagged but not enforced. Confirm the structure and the Zvw treatment with a Dutch accountant before acting.</span>
+        <div class="src" id="footSrc">Sources: Belastingdienst (voorlopige aanslag 2026; dividendbelasting; VPB), KVK 2026 rates, Salaris Vanmorgen (Zvw 2026), De Zaak (Box 2 2026).</div>
       </footer>
 
     </main>
@@ -480,11 +482,18 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
 <script>
 "use strict";
 
+/* ---------- language ---------- */
+let LANG = 'en';
+try{ LANG = localStorage.getItem('bvtax-lang') || (((navigator.language || '').toLowerCase().indexOf('nl') === 0) ? 'nl' : 'en'); }catch(e){}
+const tr  = (en, nl) => LANG === 'nl' ? nl : en;
+const L   = v => (v && typeof v === 'object') ? (LANG === 'nl' ? v.nl : v.en) : v;
+const LOC = () => LANG === 'nl' ? 'nl-NL' : 'en-US';
+
 /* ---------- formatting ---------- */
-const eur  = n => '€' + Math.round(n).toLocaleString('en-US');
-const eurS = n => (n < 0 ? '−€' : '€') + Math.round(Math.abs(n)).toLocaleString('en-US');
-const eurK = n => '€' + Math.round(n/1000) + 'k';
-const pct  = n => (n*100).toFixed(1) + '%';
+const eur  = n => '€' + Math.round(n).toLocaleString(LOC());
+const eurS = n => (n < 0 ? '−€' : '€') + Math.round(Math.abs(n)).toLocaleString(LOC());
+const eurK = n => '€' + Math.round(n/1000).toLocaleString(LOC()) + 'k';
+const pct  = n => (n*100).toLocaleString(LOC(), {minimumFractionDigits:1, maximumFractionDigits:1}) + '%';
 const clamp = (v,a,b) => Math.min(Math.max(v,a),b);
 
 /* ---------- colours ---------- */
@@ -495,54 +504,54 @@ const COL = {
 /* MODEL-START */
 /* ---------- inputs ---------- */
 const INPUTS = [
-  {id:'rate',     label:'Hourly rate',          unit:'€', min:0,   max:300,    step:5,    numStep:'0.01', val:100, hint:'excl. BTW'},
-  {id:'hoursDay', label:'Billable hours / day', unit:'',  min:0,   max:12,     step:0.5,  numStep:'0.5',  val:8},
-  {id:'workDays', label:'Working days / year',  unit:'',  min:200, max:300,    step:5,    val:260, hint:'weekdays, before leave'},
-  {id:'vacation', label:'Vacation days',        unit:'',  min:0,   max:60,     step:1,    val:25,  hint:'unbilled'},
-  {id:'cost',     label:'Other business costs', unit:'€', min:0,   max:100000, step:1000, val:10000, hint:'deductible, excl. BTW'},
-  {id:'salary',   label:'DGA gross salary',     unit:'€', min:0,   max:200000, step:1000, val:70000, hint:'per year'},
-  {id:'dividend', label:'Dividend distributed', unit:'€', min:0,   max:300000, step:5000, val:80000}
+  {id:'rate',     label:{en:'Hourly rate',nl:'Uurtarief'},                        unit:'€', min:0,   max:300,    step:5,    numStep:'0.01', val:100, hint:{en:'excl. BTW',nl:'excl. BTW'}},
+  {id:'hoursDay', label:{en:'Billable hours / day',nl:'Declarabele uren / dag'},  unit:'',  min:0,   max:12,     step:0.5,  numStep:'0.5',  val:8},
+  {id:'workDays', label:{en:'Working days / year',nl:'Werkdagen / jaar'},         unit:'',  min:200, max:300,    step:5,    val:260, hint:{en:'weekdays, before leave',nl:'doordeweeks, vóór verlof'}},
+  {id:'vacation', label:{en:'Vacation days',nl:'Vakantiedagen'},                  unit:'',  min:0,   max:60,     step:1,    val:25,  hint:{en:'unbilled',nl:'niet declarabel'}},
+  {id:'cost',     label:{en:'Other business costs',nl:'Overige zakelijke kosten'},unit:'€', min:0,   max:100000, step:1000, val:10000, hint:{en:'deductible, excl. BTW',nl:'aftrekbaar, excl. BTW'}},
+  {id:'salary',   label:{en:'DGA gross salary',nl:'DGA-brutosalaris'},            unit:'€', min:0,   max:200000, step:1000, val:70000, hint:{en:'per year',nl:'per jaar'}},
+  {id:'dividend', label:{en:'Dividend distributed',nl:'Uitgekeerd dividend'},     unit:'€', min:0,   max:300000, step:5000, val:80000}
 ];
 
 /* ---------- parameters (2026) ---------- */
 const PARAMS = [
-  {group:'BTW / VAT'},
-  {id:'btw',        label:'BTW rate',                       val:0.21,    type:'pct'},
-  {group:'Corporate income tax (VPB)'},
-  {id:'vpb1',       label:'VPB rate — bracket 1',           val:0.19,    type:'pct'},
-  {id:'vpb2',       label:'VPB rate — bracket 2',           val:0.258,   type:'pct'},
-  {id:'vpbThresh',  label:'VPB bracket threshold',          val:200000,  type:'eur'},
-  {group:'Box 1 — income tax (below AOW age)'},
-  {id:'b1r',        label:'Bracket 1 rate',                 val:0.3575,  type:'pct'},
-  {id:'b1lim',      label:'Bracket 1 limit',                val:38883,   type:'eur'},
-  {id:'b2r',        label:'Bracket 2 rate',                 val:0.3756,  type:'pct'},
-  {id:'b2lim',      label:'Bracket 2 limit',                val:78426,   type:'eur'},
-  {id:'b3r',        label:'Bracket 3 rate',                 val:0.495,   type:'pct'},
+  {group:{en:'BTW / VAT',nl:'BTW'}},
+  {id:'btw',        label:{en:'BTW rate',nl:'BTW-tarief'},  val:0.21,    type:'pct'},
+  {group:{en:'Corporate income tax (VPB)',nl:'Vennootschapsbelasting (VPB)'}},
+  {id:'vpb1',       label:{en:'VPB rate — bracket 1',nl:'VPB-tarief — schijf 1'}, val:0.19,  type:'pct'},
+  {id:'vpb2',       label:{en:'VPB rate — bracket 2',nl:'VPB-tarief — schijf 2'}, val:0.258, type:'pct'},
+  {id:'vpbThresh',  label:{en:'VPB bracket threshold',nl:'VPB-schijfgrens'},      val:200000, type:'eur'},
+  {group:{en:'Box 1 — income tax (below AOW age)',nl:'Box 1 — inkomstenbelasting (onder AOW-leeftijd)'}},
+  {id:'b1r',        label:{en:'Bracket 1 rate',nl:'Tarief schijf 1'},   val:0.3575,  type:'pct'},
+  {id:'b1lim',      label:{en:'Bracket 1 limit',nl:'Grens schijf 1'},   val:38883,   type:'eur'},
+  {id:'b2r',        label:{en:'Bracket 2 rate',nl:'Tarief schijf 2'},   val:0.3756,  type:'pct'},
+  {id:'b2lim',      label:{en:'Bracket 2 limit',nl:'Grens schijf 2'},   val:78426,   type:'eur'},
+  {id:'b3r',        label:{en:'Bracket 3 rate',nl:'Tarief schijf 3'},   val:0.495,   type:'pct'},
   {group:'Algemene heffingskorting'},
-  {id:'ahkMax',     label:'Maximum credit',                 val:3115,    type:'eur'},
-  {id:'ahkStart',   label:'Phase-out start (verzamelinkomen)', val:29736, type:'eur'},
-  {id:'ahkRate',    label:'Phase-out rate',                 val:0.06398, type:'pct'},
+  {id:'ahkMax',     label:{en:'Maximum credit',nl:'Maximale korting'},  val:3115,    type:'eur'},
+  {id:'ahkStart',   label:{en:'Phase-out start (verzamelinkomen)',nl:'Afbouw vanaf (verzamelinkomen)'}, val:29736, type:'eur'},
+  {id:'ahkRate',    label:{en:'Phase-out rate',nl:'Afbouwpercentage'},  val:0.06398, type:'pct'},
   {group:'Arbeidskorting'},
-  {id:'ak1lim',     label:'Build-up limit 1',               val:11965,   type:'eur'},
-  {id:'ak1r',       label:'Build-up rate 1',                val:0.08324, type:'pct'},
-  {id:'ak2lim',     label:'Build-up limit 2',               val:25845,   type:'eur'},
-  {id:'ak2r',       label:'Build-up rate 2',                val:0.31009, type:'pct'},
-  {id:'ak3r',       label:'Build-up rate 3',                val:0.0195,  type:'pct'},
-  {id:'akStart',    label:'Phase-out start',                val:45592,   type:'eur'},
-  {id:'akRate',     label:'Phase-out rate',                 val:0.0651,  type:'pct'},
-  {group:'Health contribution (Zvw)'},
-  {id:'zvwRate',    label:'Zvw rate (DGA bijdrage)',        val:0.0485,  type:'pct'},
-  {id:'zvwMax',     label:'Zvw max contribution base',      val:79409,   type:'eur'},
-  {group:'Box 2 — dividend (substantial interest)'},
-  {id:'box2r1',     label:'Box 2 rate — bracket 1',         val:0.245,   type:'pct'},
-  {id:'box2thresh', label:'Box 2 bracket threshold',        val:68843,   type:'eur'},
-  {id:'box2r2',     label:'Box 2 rate — bracket 2',         val:0.31,    type:'pct'},
-  {id:'dwht',       label:'Dividend withholding (prepaid)', val:0.15,    type:'pct'},
+  {id:'ak1lim',     label:{en:'Build-up limit 1',nl:'Opbouwgrens 1'},   val:11965,   type:'eur'},
+  {id:'ak1r',       label:{en:'Build-up rate 1',nl:'Opbouwpercentage 1'}, val:0.08324, type:'pct'},
+  {id:'ak2lim',     label:{en:'Build-up limit 2',nl:'Opbouwgrens 2'},   val:25845,   type:'eur'},
+  {id:'ak2r',       label:{en:'Build-up rate 2',nl:'Opbouwpercentage 2'}, val:0.31009, type:'pct'},
+  {id:'ak3r',       label:{en:'Build-up rate 3',nl:'Opbouwpercentage 3'}, val:0.0195, type:'pct'},
+  {id:'akStart',    label:{en:'Phase-out start',nl:'Afbouw vanaf'},     val:45592,   type:'eur'},
+  {id:'akRate',     label:{en:'Phase-out rate',nl:'Afbouwpercentage'},  val:0.0651,  type:'pct'},
+  {group:{en:'Health contribution (Zvw)',nl:'Zorgverzekeringswet (Zvw)'}},
+  {id:'zvwRate',    label:{en:'Zvw rate (DGA bijdrage)',nl:'Zvw-tarief (DGA-bijdrage)'}, val:0.0485, type:'pct'},
+  {id:'zvwMax',     label:{en:'Zvw max contribution base',nl:'Zvw maximum bijdrage-inkomen'}, val:79409, type:'eur'},
+  {group:{en:'Box 2 — dividend (substantial interest)',nl:'Box 2 — dividend (aanmerkelijk belang)'}},
+  {id:'box2r1',     label:{en:'Box 2 rate — bracket 1',nl:'Box 2-tarief — schijf 1'}, val:0.245, type:'pct'},
+  {id:'box2thresh', label:{en:'Box 2 bracket threshold',nl:'Box 2-schijfgrens'},      val:68843, type:'eur'},
+  {id:'box2r2',     label:{en:'Box 2 rate — bracket 2',nl:'Box 2-tarief — schijf 2'}, val:0.31,  type:'pct'},
+  {id:'dwht',       label:{en:'Dividend withholding (prepaid)',nl:'Dividendbelasting (voorheffing)'}, val:0.15, type:'pct'},
   {group:'DGA'},
-  {id:'gebrLoon',   label:'Gebruikelijk loon (minimum salary)', val:58000, type:'eur'},
-  {group:'Eenmanszaak (ZZP) — comparison'},
-  {id:'zelfAftrek', label:'Zelfstandigenaftrek',                val:1200,  type:'eur'},
-  {id:'mkbVrij',    label:'MKB-winstvrijstelling',              val:0.127, type:'pct'}
+  {id:'gebrLoon',   label:{en:'Gebruikelijk loon (minimum salary)',nl:'Gebruikelijk loon (minimumsalaris)'}, val:58000, type:'eur'},
+  {group:{en:'Eenmanszaak (ZZP) — comparison',nl:'Eenmanszaak (zzp) — vergelijking'}},
+  {id:'zelfAftrek', label:'Zelfstandigenaftrek',   val:1200,  type:'eur'},
+  {id:'mkbVrij',    label:'MKB-winstvrijstelling', val:0.127, type:'pct'}
 ];
 
 const state = {};
@@ -675,14 +684,14 @@ document.addEventListener('click', hideTip);
 
 /* ---------- flow bar ---------- */
 const FLOW = [
-  {k:'cost',      lbl:'Business costs',   c:COL.cost},
-  {k:'vpb',       lbl:'VPB (corporate)',  c:COL.vpb},
-  {k:'nit',       lbl:'Box 1 income tax', c:COL.nit},
-  {k:'zvw',       lbl:'Zvw health',       c:COL.zvw},
-  {k:'box2',      lbl:'Box 2 dividend',   c:COL.box2},
-  {k:'netSalary', lbl:'Net salary',       c:COL.netSalary},
-  {k:'netDiv',    lbl:'Net dividend',     c:COL.netDiv},
-  {k:'retained',  lbl:'Retained in BV',   c:COL.retained}
+  {k:'cost',      lbl:{en:'Business costs',nl:'Zakelijke kosten'},         c:COL.cost},
+  {k:'vpb',       lbl:{en:'VPB (corporate)',nl:'VPB (vennootschap)'},      c:COL.vpb},
+  {k:'nit',       lbl:{en:'Box 1 income tax',nl:'Box 1 inkomstenbelasting'}, c:COL.nit},
+  {k:'zvw',       lbl:{en:'Zvw health',nl:'Zvw-bijdrage'},                 c:COL.zvw},
+  {k:'box2',      lbl:{en:'Box 2 dividend',nl:'Box 2 dividend'},           c:COL.box2},
+  {k:'netSalary', lbl:{en:'Net salary',nl:'Nettosalaris'},                 c:COL.netSalary},
+  {k:'netDiv',    lbl:{en:'Net dividend',nl:'Nettodividend'},              c:COL.netDiv},
+  {k:'retained',  lbl:{en:'Retained in BV',nl:'Blijft in de BV'},          c:COL.retained}
 ];
 const flowBar = document.getElementById('flowBar');
 const flowSegs = {};
@@ -697,10 +706,10 @@ FLOW.forEach(f => {
 
 /* ---------- donut ---------- */
 const TAXSEG = [
-  {k:'vpb',  lbl:'VPB — corporate',     c:'#3b82f6'},
-  {k:'nit',  lbl:'Box 1 — income tax',  c:'#f59e0b'},
-  {k:'zvw',  lbl:'Zvw — health',        c:'#14b8a6'},
-  {k:'box2', lbl:'Box 2 — dividend',    c:'#ef4444'}
+  {k:'vpb',  lbl:{en:'VPB — corporate',nl:'VPB — vennootschap'},         c:'#3b82f6'},
+  {k:'nit',  lbl:{en:'Box 1 — income tax',nl:'Box 1 — inkomstenbelasting'}, c:'#f59e0b'},
+  {k:'zvw',  lbl:{en:'Zvw — health',nl:'Zvw — zorg'},                    c:'#14b8a6'},
+  {k:'box2', lbl:{en:'Box 2 — dividend',nl:'Box 2 — dividend'},          c:'#ef4444'}
 ];
 
 /* ---------- donut builder ---------- */
@@ -720,11 +729,11 @@ function buildDonut(segs, tot){
     c.setAttribute('stroke-width', DONUT_SW);
     c.setAttribute('stroke-dasharray', len + ' ' + (DONUT_C - len));
     c.setAttribute('stroke-dashoffset', -start);
-    const pctTxt = (frac * 100).toFixed(1) + '%';
-    const html = `<span class="tdot" style="background:${s.c}"></span>${s.lbl}<span class="tval">${eur(s.v)}</span><span class="tpct">${pctTxt}</span>`;
+    const pctTxt = pct(frac);
+    const html = `<span class="tdot" style="background:${s.c}"></span>${L(s.lbl)}<span class="tval">${eur(s.v)}</span><span class="tpct">${pctTxt}</span>`;
     attachTip(c, () => html);
     const t = document.createElementNS(SVGNS, 'title');
-    t.textContent = `${s.lbl}: ${eur(s.v)} (${pctTxt})`;
+    t.textContent = `${L(s.lbl)}: ${eur(s.v)} (${pctTxt})`;
     c.appendChild(t);
     g.appendChild(c);
     start += len;
@@ -739,7 +748,7 @@ let optPts = null, optGeom = null;
 function renderOptimizer(r){
   const E = state.salary + state.dividend;
   const note = document.getElementById('optNote');
-  document.getElementById('optTag').textContent = 'total payout ' + eur(E);
+  document.getElementById('optTag').textContent = tr('total payout ', 'totale opname ') + eur(E);
 
   // marginal routes: what the next €1,000 of pre-tax profit costs per route
   const D = 1000;
@@ -754,16 +763,18 @@ function renderOptimizer(r){
   const routeLn = (lbl, sub, rate, best) =>
     `<div class="ln"><span class="ln-l">${lbl}<span class="ln-sub">${sub}</span></span><span class="ln-v${best ? ' pos' : ''}">${eur((1 - rate) * D)} · ${pct(rate)}</span></div>`;
   document.getElementById('optRoutes').innerHTML =
-    '<div class="routes-h">Next €1,000 of pre-tax profit</div>' +
-    routeLn('Paid as salary', 'Box 1 + Zvw; deductible for VPB', salRate, salBest) +
-    routeLn('Paid as dividend', 'VPB now + Box 2 + AHK claw-back', divRate, !salBest) +
-    routeLn('Retained in the BV', 'VPB only now; Box 2 deferred until payout', retRate, false) +
-    '<div class="opt-note">Net in pocket · effective rate. Green marks the cheaper way to take the next euro out this year; retention defers Box 2 rather than avoiding it.</div>';
+    '<div class="routes-h">' + tr('Next €1,000 of pre-tax profit', 'Volgende €1.000 winst vóór belasting') + '</div>' +
+    routeLn(tr('Paid as salary','Als salaris'), tr('Box 1 + Zvw; deductible for VPB','Box 1 + Zvw; aftrekbaar voor de VPB'), salRate, salBest) +
+    routeLn(tr('Paid as dividend','Als dividend'), tr('VPB now + Box 2 + AHK claw-back','VPB nu + box 2 + AHK-afbouw'), divRate, !salBest) +
+    routeLn(tr('Retained in the BV','Ingehouden in de BV'), tr('VPB only now; Box 2 deferred until payout','Nu alleen VPB; box 2 uitgesteld tot uitkering'), retRate, false) +
+    '<div class="opt-note">' + tr('Net in pocket · effective rate. Green marks the cheaper way to take the next euro out this year; retention defers Box 2 rather than avoiding it.',
+      'Netto in je zak · effectieve druk. Groen is de goedkoopste route voor de volgende euro dit jaar; inhouden stelt box 2 uit maar voorkomt die niet.') + '</div>';
 
   if (E < 1000){
     optSvg.innerHTML = '';
     optPts = null;
-    note.textContent = 'Set a salary or dividend to see the optimal split at a fixed total payout.';
+    note.textContent = tr('Set a salary or dividend to see the optimal split at a fixed total payout.',
+      'Stel een salaris of dividend in om de optimale verdeling bij een vaste totale opname te zien.');
     return;
   }
 
@@ -804,7 +815,7 @@ function renderOptimizer(r){
     const v = E * k / 4;
     el += `<text x="${xs(v).toFixed(1)}" y="${OPT_H - OPT_B + 15}" text-anchor="middle" font-size="10.5" fill="var(--faint)">${eurK(v)}</text>`;
   }
-  el += `<text x="${(OPT_L + OPT_W - OPT_R) / 2}" y="${OPT_H - 3}" text-anchor="middle" font-size="10.5" fill="var(--muted)">gross salary — the rest of the payout is dividend</text>`;
+  el += `<text x="${(OPT_L + OPT_W - OPT_R) / 2}" y="${OPT_H - 3}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${tr('gross salary — the rest of the payout is dividend', 'brutosalaris — de rest van de opname is dividend')}</text>`;
   let solid = '', dash = '';
   for (let i = 0; i < OPT_N; i++){
     const a = pts[i], b = pts[i + 1];
@@ -816,15 +827,19 @@ function renderOptimizer(r){
   el += `<line x1="${xs(best.sal).toFixed(1)}" y1="${ys(best.net).toFixed(1)}" x2="${xs(best.sal).toFixed(1)}" y2="${OPT_H - OPT_B}" stroke="var(--good)" stroke-dasharray="3 4"/>`;
   el += `<circle cx="${xs(cur.sal).toFixed(1)}" cy="${ys(cur.net).toFixed(1)}" r="4.5" fill="var(--card)" stroke="var(--navy)" stroke-width="2.5"/>`;
   el += `<circle cx="${xs(best.sal).toFixed(1)}" cy="${ys(best.net).toFixed(1)}" r="4.5" fill="var(--good)"/>`;
-  el += `<text x="${xs(best.sal).toFixed(1)}" y="${(ys(best.net) - 9).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--good)">best</text>`;
-  el += `<text x="${xs(cur.sal).toFixed(1)}" y="${(ys(cur.net) + 18).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--navy)">now</text>`;
+  el += `<text x="${xs(best.sal).toFixed(1)}" y="${(ys(best.net) - 9).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--good)">${tr('best','beste')}</text>`;
+  el += `<text x="${xs(cur.sal).toFixed(1)}" y="${(ys(cur.net) + 18).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--navy)">${tr('now','nu')}</text>`;
   el += `<circle id="optDot" r="4" fill="var(--accent)" opacity="0"/>`;
   optSvg.innerHTML = el;
 
   const gain = best.net - r.netCash;
-  note.innerHTML = `Keeping the total payout at <b>${eur(E)}</b>, the best split is <b>${eur(best.sal)} salary + ${eur(best.div)} dividend</b> → <b>${eur(best.net)}</b> net` +
-    (gain > 250 ? ` — <b>${eur(gain)}</b> more than your current mix.` : ' — your current mix is already at the optimum.') +
-    ' Shaded zone: salary below the gebruikelijk loon minimum. Dashed: dividend exceeds this year’s after-tax profit.';
+  note.innerHTML = tr(
+      `Keeping the total payout at <b>${eur(E)}</b>, the best split is <b>${eur(best.sal)} salary + ${eur(best.div)} dividend</b> → <b>${eur(best.net)}</b> net`,
+      `Bij een totale opname van <b>${eur(E)}</b> is de beste verdeling <b>${eur(best.sal)} salaris + ${eur(best.div)} dividend</b> → <b>${eur(best.net)}</b> netto`) +
+    (gain > 250 ? tr(` — <b>${eur(gain)}</b> more than your current mix.`, ` — <b>${eur(gain)}</b> meer dan je huidige mix.`)
+                : tr(' — your current mix is already at the optimum.', ' — je huidige mix is al optimaal.')) +
+    tr(' Shaded zone: salary below the gebruikelijk loon minimum. Dashed: dividend exceeds this year’s after-tax profit.',
+       ' Gearceerde zone: salaris onder het gebruikelijk loon. Gestippeld: dividend overstijgt de winst na belasting van dit jaar.');
 }
 
 function optHover(e){
@@ -835,7 +850,7 @@ function optHover(e){
   const p = optPts[i];
   const dot = document.getElementById('optDot');
   if (dot){ dot.setAttribute('cx', optGeom.xs(p.sal).toFixed(1)); dot.setAttribute('cy', optGeom.ys(p.net).toFixed(1)); dot.setAttribute('opacity', '1'); }
-  chartTip.innerHTML = `${eur(p.sal)} salary + ${eur(p.div)} dividend<span class="tval">${eur(p.net)} net</span><span class="tpct">tax ${eur(p.tax)}</span>`;
+  chartTip.innerHTML = `${eur(p.sal)} ${tr('salary','salaris')} + ${eur(p.div)} dividend<span class="tval">${eur(p.net)} ${tr('net','netto')}</span><span class="tpct">${tr('tax','belasting')} ${eur(p.tax)}</span>`;
   chartTip.classList.add('show');
   moveTip(e);
 }
@@ -857,21 +872,23 @@ function render(){
   document.getElementById('kpiRate').textContent = pct(r.effTakeHome);
   document.getElementById('kpiRet').textContent  = eurS(r.retained);
   document.getElementById('revOut').textContent  = eur(r.revenue);
-  document.getElementById('revSub').textContent  = r.billDays + ' billable days × ' + state.hoursDay + 'h';
+  document.getElementById('revSub').textContent  = r.billDays + tr(' billable days × ', ' declarabele dagen × ') + state.hoursDay + tr('h', 'u');
 
   // warnings
   const wDiv = document.getElementById('warnDiv');
   if (r.dividend > r.atp + 0.5){
     wDiv.classList.add('show');
-    document.getElementById('warnDivTxt').innerHTML =
-      `Dividend of <b>${eur(r.dividend)}</b> exceeds this year's after-tax profit of <b>${eur(r.atp)}</b>. A real distribution would have to draw on retained earnings from prior years.`;
+    document.getElementById('warnDivTxt').innerHTML = tr(
+      `Dividend of <b>${eur(r.dividend)}</b> exceeds this year's after-tax profit of <b>${eur(r.atp)}</b>. A real distribution would have to draw on retained earnings from prior years.`,
+      `Dividend van <b>${eur(r.dividend)}</b> overstijgt de winst na belasting van dit jaar (<b>${eur(r.atp)}</b>). Een echte uitkering zou moeten putten uit ingehouden winst van eerdere jaren.`);
   } else wDiv.classList.remove('show');
 
   const wSal = document.getElementById('warnSal');
   if (r.salary < P.gebrLoon){
     wSal.classList.add('show');
-    document.getElementById('warnSalTxt').innerHTML =
-      `Salary of <b>${eur(r.salary)}</b> is below the 2026 customary-salary minimum (<b>${eur(P.gebrLoon)}</b>, gebruikelijk loon). The Belastingdienst may require a higher DGA salary.`;
+    document.getElementById('warnSalTxt').innerHTML = tr(
+      `Salary of <b>${eur(r.salary)}</b> is below the 2026 customary-salary minimum (<b>${eur(P.gebrLoon)}</b>, gebruikelijk loon). The Belastingdienst may require a higher DGA salary.`,
+      `Salaris van <b>${eur(r.salary)}</b> ligt onder het gebruikelijk loon voor 2026 (<b>${eur(P.gebrLoon)}</b>). De Belastingdienst kan een hoger DGA-salaris eisen.`);
   } else wSal.classList.remove('show');
 
   /* ----- flow bar ----- */
@@ -882,93 +899,102 @@ function render(){
     const seg = flowSegs[f.k];
     seg.style.flexBasis = p + '%';
     seg.textContent = p > 8 ? eurK(v) : '';
-    seg._tip = `<span class="tdot" style="background:${f.c}"></span>${f.lbl}<span class="tval">${eurS(r[f.k])}</span><span class="tpct">${(r[f.k]/rev*100).toFixed(1)}%</span>`;
+    seg._tip = `<span class="tdot" style="background:${f.c}"></span>${L(f.lbl)}<span class="tval">${eurS(r[f.k])}</span><span class="tpct">${pct(r[f.k]/rev)}</span>`;
   });
-  document.getElementById('flowTotal').textContent = eur(r.revenue) + ' revenue';
+  document.getElementById('flowTotal').textContent = eur(r.revenue) + tr(' revenue', ' omzet');
   document.getElementById('flowMax').textContent = eur(r.revenue);
   document.getElementById('flowLegend').innerHTML = FLOW.map(f =>
-    `<div class="leg"><span class="sw" style="background:${f.c}"></span><span class="lt">${f.lbl}</span><span class="lv">${eurS(r[f.k])}</span></div>`
+    `<div class="leg"><span class="sw" style="background:${f.c}"></span><span class="lt">${L(f.lbl)}</span><span class="lv">${eurS(r[f.k])}</span></div>`
   ).join('');
 
   /* ----- corporate ----- */
   document.getElementById('corpBody').innerHTML =
-    ln('Revenue', eur(r.revenue)) +
-    ln('Salary (deductible)', '−'+eur(r.salary), {vcls:'neg'}) +
-    ln('Other costs (deductible)', '−'+eur(r.cost), {vcls:'neg'}) +
-    ln('Profit before tax', eur(r.pbt), {cls:'sub'}) +
-    ln('VPB @ '+pct(P.vpb1)+' (first '+eur(P.vpbThresh)+')', '−'+eur(r.vpb1), {vcls:'neg'}) +
-    ln('VPB @ '+pct(P.vpb2)+' (above)', '−'+eur(r.vpb2), {vcls:'neg'}) +
-    (r.pbt < 0 ? ln('Loss — no VPB due; carried forward against future profits, not refunded', '', {cls:'muted'}) : '') +
-    ln('After-tax profit (distributable)', eurS(r.atp), {cls:'total'}) +
-    ln('Effective VPB rate', r.pbt>0 ? pct(r.vpb/r.pbt) : '—', {cls:'muted'});
+    ln(tr('Revenue','Omzet'), eur(r.revenue)) +
+    ln(tr('Salary (deductible)','Salaris (aftrekbaar)'), '−'+eur(r.salary), {vcls:'neg'}) +
+    ln(tr('Other costs (deductible)','Overige kosten (aftrekbaar)'), '−'+eur(r.cost), {vcls:'neg'}) +
+    ln(tr('Profit before tax','Winst vóór belasting'), eur(r.pbt), {cls:'sub'}) +
+    ln('VPB @ '+pct(P.vpb1)+tr(' (first ',' (eerste ')+eur(P.vpbThresh)+')', '−'+eur(r.vpb1), {vcls:'neg'}) +
+    ln('VPB @ '+pct(P.vpb2)+tr(' (above)',' (daarboven)'), '−'+eur(r.vpb2), {vcls:'neg'}) +
+    (r.pbt < 0 ? ln(tr('Loss — no VPB due; carried forward against future profits, not refunded',
+                       'Verlies — geen VPB verschuldigd; verrekenbaar met toekomstige winst, geen teruggaaf'), '', {cls:'muted'}) : '') +
+    ln(tr('After-tax profit (distributable)','Winst na belasting (uitkeerbaar)'), eurS(r.atp), {cls:'total'}) +
+    ln(tr('Effective VPB rate','Effectief VPB-tarief'), r.pbt>0 ? pct(r.vpb/r.pbt) : '—', {cls:'muted'});
 
   /* ----- BTW ----- */
   document.getElementById('btwBody').innerHTML =
-    ln('Output BTW charged to clients', eur(r.outputBtw), {sub:pct(P.btw)+' on revenue'}) +
-    ln('Input BTW reclaimable on costs', '−'+eur(-r.inputBtw), {vcls:'neg', sub:pct(P.btw)+' on costs'}) +
-    ln('Net BTW payable', eur(r.netBtw), {cls:'total'}) +
-    ln('Collected from clients, then remitted — set it aside. Excluded from profit & total tax.', '', {cls:'muted'});
+    ln(tr('Output BTW charged to clients','Ontvangen BTW over omzet'), eur(r.outputBtw), {sub:pct(P.btw)+tr(' on revenue',' over omzet')}) +
+    ln(tr('Input BTW reclaimable on costs','Terug te vorderen BTW op kosten'), '−'+eur(-r.inputBtw), {vcls:'neg', sub:pct(P.btw)+tr(' on costs',' over kosten')}) +
+    ln(tr('Net BTW payable','Netto af te dragen BTW'), eur(r.netBtw), {cls:'total'}) +
+    ln(tr('Collected from clients, then remitted — set it aside. Excluded from profit & total tax.',
+          'Geïnd van klanten en daarna afgedragen — zet het apart. Telt niet mee in winst en totale belasting.'), '', {cls:'muted'});
 
   /* ----- salary (annual / monthly) ----- */
   const m = v => eur(v/12);
   document.getElementById('salBody').innerHTML = `
     <table class="sal-tbl">
-      <thead><tr><th>Box 1 — salary</th><th>Annual</th><th>Monthly</th></tr></thead>
+      <thead><tr><th>${tr('Box 1 — salary','Box 1 — salaris')}</th><th>${tr('Annual','Per jaar')}</th><th>${tr('Monthly','Per maand')}</th></tr></thead>
       <tbody>
-        <tr><td>Gross salary</td><td class="num">${eur(r.salary)}</td><td class="num">${m(r.salary)}</td></tr>
-        <tr><td>Income tax (net of credits)</td><td class="num">−${eur(r.nit)}</td><td class="num">−${m(r.nit)}</td></tr>
-        <tr><td>Zvw health (${pct(P.zvwRate)})</td><td class="num">−${eur(r.zvw)}</td><td class="num">−${m(r.zvw)}</td></tr>
-        <tr class="tot"><td>Net salary in your account</td><td class="num">${eur(r.netSalary)}</td><td class="num">${m(r.netSalary)}</td></tr>
+        <tr><td>${tr('Gross salary','Brutosalaris')}</td><td class="num">${eur(r.salary)}</td><td class="num">${m(r.salary)}</td></tr>
+        <tr><td>${tr('Income tax (net of credits)','Inkomstenbelasting (na kortingen)')}</td><td class="num">−${eur(r.nit)}</td><td class="num">−${m(r.nit)}</td></tr>
+        <tr><td>${tr('Zvw health','Zvw-bijdrage')} (${pct(P.zvwRate)})</td><td class="num">−${eur(r.zvw)}</td><td class="num">−${m(r.zvw)}</td></tr>
+        <tr class="tot"><td>${tr('Net salary in your account','Nettosalaris op je rekening')}</td><td class="num">${eur(r.netSalary)}</td><td class="num">${m(r.netSalary)}</td></tr>
       </tbody>
     </table>
-    <div class="credit-note">Tax credits: algemene heffingskorting <b>${eur(r.ahk)}</b> + arbeidskorting <b>${eur(r.ak)}</b>. Applied: <b>${eur(r.creditsB1)}</b> against Box 1${r.creditsB2 > .5 ? `, <b>${eur(r.creditsB2)}</b> against Box 2` : ''}${r.creditsUnused > .5 ? ` — ${eur(r.creditsUnused)} unused (credits are non-refundable)` : ''}.</div>`;
+    <div class="credit-note">${tr('Tax credits','Heffingskortingen')}: algemene heffingskorting <b>${eur(r.ahk)}</b> + arbeidskorting <b>${eur(r.ak)}</b>. ${tr('Applied','Verrekend')}: <b>${eur(r.creditsB1)}</b> ${tr('against Box 1','met box 1')}${r.creditsB2 > .5 ? `, <b>${eur(r.creditsB2)}</b> ${tr('against Box 2','met box 2')}` : ''}${r.creditsUnused > .5 ? ` — ${eur(r.creditsUnused)} ${tr('unused (credits are non-refundable)','onbenut (kortingen worden niet uitbetaald)')}` : ''}.</div>`;
 
   /* ----- dividend ----- */
   document.getElementById('divBody').innerHTML =
-    ln('Dividend distributed', eur(r.dividend)) +
-    (r.partnerDiv > 0 ? ln('Split 50/50 with your fiscal partner — each half taxed separately. Assumes the partner’s own credits are unaffected.', '', {cls:'muted'}) : '') +
-    ln('Box 2 @ '+pct(P.box2r1)+' (first '+eur(P.box2thresh)+(r.partnerDiv > 0 ? ' each' : '')+')', '−'+eur(r.box2a), {vcls:'neg'}) +
-    ln('Box 2 @ '+pct(P.box2r2)+' (above)', '−'+eur(r.box2b), {vcls:'neg'}) +
-    (r.creditsB2 > .5 ? ln('Unused heffingskortingen offset', '+'+eur(r.creditsB2), {vcls:'pos'}) : '') +
-    ln('Total Box 2 tax', '−'+eur(r.box2), {cls:'sub', vcls:'neg'}) +
-    (r.ahkClaw > .5 ? ln('This dividend also claws back '+eur(r.ahkClaw)+' of algemene heffingskorting via the verzamelinkomen phase-out — counted under Box 1.', '', {cls:'muted'}) : '') +
-    ln('of which '+pct(P.dwht)+' withheld now as dividendbelasting', eur(r.dwht), {cls:'muted'}) +
-    ln('Net dividend in pocket', eur(r.netDiv), {cls:'total'});
+    ln(tr('Dividend distributed','Uitgekeerd dividend'), eur(r.dividend)) +
+    (r.partnerDiv > 0 ? ln(tr('Split 50/50 with your fiscal partner — each half taxed separately. Assumes the partner’s own credits are unaffected.',
+                              'Verdeeld 50/50 met je fiscaal partner — elke helft apart belast. Gaat ervan uit dat de kortingen van je partner ongemoeid blijven.'), '', {cls:'muted'}) : '') +
+    ln('Box 2 @ '+pct(P.box2r1)+tr(' (first ',' (eerste ')+eur(P.box2thresh)+(r.partnerDiv > 0 ? tr(' each',' elk') : '')+')', '−'+eur(r.box2a), {vcls:'neg'}) +
+    ln('Box 2 @ '+pct(P.box2r2)+tr(' (above)',' (daarboven)'), '−'+eur(r.box2b), {vcls:'neg'}) +
+    (r.creditsB2 > .5 ? ln(tr('Unused heffingskortingen offset','Verrekening onbenutte heffingskortingen'), '+'+eur(r.creditsB2), {vcls:'pos'}) : '') +
+    ln(tr('Total Box 2 tax','Totale box 2-belasting'), '−'+eur(r.box2), {cls:'sub', vcls:'neg'}) +
+    (r.ahkClaw > .5 ? ln(tr('This dividend also claws back '+eur(r.ahkClaw)+' of algemene heffingskorting via the verzamelinkomen phase-out — counted under Box 1.',
+                            'Dit dividend bouwt ook '+eur(r.ahkClaw)+' algemene heffingskorting af via het verzamelinkomen — verwerkt onder box 1.'), '', {cls:'muted'}) : '') +
+    ln(tr('of which ','waarvan ')+pct(P.dwht)+tr(' withheld now as dividendbelasting',' nu ingehouden als dividendbelasting'), eur(r.dwht), {cls:'muted'}) +
+    ln(tr('Net dividend in pocket','Nettodividend in je zak'), eur(r.netDiv), {cls:'total'});
 
   /* ----- tax composition donut ----- */
   const segs = TAXSEG.map(s => ({...s, v:Math.max(r[s.k],0)}));
   const tot = segs.reduce((a,s)=>a+s.v,0) || 1;
   buildDonut(segs, tot);
   document.getElementById('donutTotal').textContent = eur(r.totalTax);
-  document.getElementById('donutPct').textContent = r.pbt>0 ? pct(r.taxPctEarnings)+' of earnings' : '';
+  document.getElementById('donutPct').textContent = r.pbt>0 ? pct(r.taxPctEarnings)+tr(' of earnings',' van de winst') : '';
   document.getElementById('donutLegend').innerHTML = segs.map(s =>
-    `<div class="leg"><span class="sw" style="background:${s.c}"></span><span class="lt">${s.lbl}</span><span class="lv">${eur(s.v)} · ${(s.v/tot*100).toFixed(0)}%</span></div>`
+    `<div class="leg"><span class="sw" style="background:${s.c}"></span><span class="lt">${L(s.lbl)}</span><span class="lv">${eur(s.v)} · ${(s.v/tot*100).toFixed(0)}%</span></div>`
   ).join('');
 
   /* ----- summary ----- */
   document.getElementById('sumBody').innerHTML =
-    ln('Corporate tax (VPB)', eur(r.vpb)) +
-    ln('Box 1 income tax', eur(r.nit)) +
-    ln('Zvw health contribution', eur(r.zvw)) +
-    ln('Box 2 dividend tax', eur(r.box2)) +
-    ln('Total tax (excl. BTW)', eur(r.totalTax), {cls:'total'}) +
-    ln('Net cash to you', eur(r.netCash), {cls:'sub', vcls:'pos'}) +
-    ln('Retained in the BV', eurS(r.retained), {cls:'sub'}) +
-    ln('Tax as % of business earnings', pct(r.taxPctEarnings), {cls:'muted'}) +
-    ln('Effective tax rate on take-home', pct(r.effTakeHome), {cls:'muted'});
+    ln(tr('Corporate tax (VPB)','Vennootschapsbelasting (VPB)'), eur(r.vpb)) +
+    ln(tr('Box 1 income tax','Box 1 inkomstenbelasting'), eur(r.nit)) +
+    ln(tr('Zvw health contribution','Zvw-bijdrage'), eur(r.zvw)) +
+    ln(tr('Box 2 dividend tax','Box 2 dividendbelasting'), eur(r.box2)) +
+    ln(tr('Total tax (excl. BTW)','Totale belasting (excl. BTW)'), eur(r.totalTax), {cls:'total'}) +
+    ln(tr('Net cash to you','Netto naar privé'), eur(r.netCash), {cls:'sub', vcls:'pos'}) +
+    ln(tr('Retained in the BV','Achtergebleven in de BV'), eurS(r.retained), {cls:'sub'}) +
+    ln(tr('Tax as % of business earnings','Belasting als % van de winst'), pct(r.taxPctEarnings), {cls:'muted'}) +
+    ln(tr('Effective tax rate on take-home','Effectieve druk op je opname'), pct(r.effTakeHome), {cls:'muted'});
 
   /* ----- payment calendar ----- */
   const pay = [
-    {a:r.nit+r.zvw,    f:'Monthly',     nm:'Loonheffing on salary', who:'The BV (payroll)',
-      note:`Box 1 wage tax + Zvw, filed and paid each month within 1 month of the period — about <b>${eur((r.nit+r.zvw)/12)}/mo</b>. A prepayment of your Box 1 tax, reconciled in your return.`},
-    {a:r.netBtw,       f:'Quarterly',   nm:'BTW / VAT', who:'The BV',
-      note:'Return + payment within 1 month of each quarter-end (~30 Apr, 31 Jul, 31 Oct, 31 Jan). Money collected from clients — set it aside.'},
-    {a:r.dwht,         f:'Per dividend',nm:'Dividendbelasting (15%)', who:'The BV',
-      note:'Due within 1 month of the dividend being made available (AGM date). A December dividend is due ~end January. Prepayment credited against Box 2.'},
-    {a:r.vpb,          f:'Provisional + final', nm:'Vennootschapsbelasting', who:'The BV',
-      note:'Provisional assessment paid in instalments through the year; final return within 5 months of year-end (by 31 May, extension possible). Balance on the final assessment.'},
-    {a:r.box2-r.dwht,  f:'Annual',      nm:'Box 2 — balance after the 15%', who:'You (personally)',
-      note:'Settled via your personal income tax return, due 1 May of the following year. The 15% already withheld is credited against the total; a negative balance here means a refund.'}
+    {a:r.nit+r.zvw,    f:tr('Monthly','Maandelijks'), nm:tr('Loonheffing on salary','Loonheffing over salaris'), who:tr('The BV (payroll)','De BV (loonadministratie)'),
+      note:tr(`Box 1 wage tax + Zvw, filed and paid each month within 1 month of the period — about <b>${eur((r.nit+r.zvw)/12)}/mo</b>. A prepayment of your Box 1 tax, reconciled in your return.`,
+              `Box 1 loonbelasting + Zvw, maandelijks aangegeven en betaald binnen 1 maand na het tijdvak — circa <b>${eur((r.nit+r.zvw)/12)}/mnd</b>. Een voorheffing op je box 1-belasting, verrekend in je aangifte.`)},
+    {a:r.netBtw,       f:tr('Quarterly','Per kwartaal'), nm:'BTW', who:tr('The BV','De BV'),
+      note:tr('Return + payment within 1 month of each quarter-end (~30 Apr, 31 Jul, 31 Oct, 31 Jan). Money collected from clients — set it aside.',
+              'Aangifte + betaling binnen 1 maand na elk kwartaal (~30 apr, 31 jul, 31 okt, 31 jan). Geld dat je van klanten int — zet het apart.')},
+    {a:r.dwht,         f:tr('Per dividend','Per dividend'), nm:'Dividendbelasting (15%)', who:tr('The BV','De BV'),
+      note:tr('Due within 1 month of the dividend being made available (AGM date). A December dividend is due ~end January. Prepayment credited against Box 2.',
+              'Verschuldigd binnen 1 maand nadat het dividend beschikbaar is gesteld (AVA-datum). Een decemberdividend is ~eind januari verschuldigd. Voorheffing verrekend met box 2.')},
+    {a:r.vpb,          f:tr('Provisional + final','Voorlopig + definitief'), nm:'Vennootschapsbelasting', who:tr('The BV','De BV'),
+      note:tr('Provisional assessment paid in instalments through the year; final return within 5 months of year-end (by 31 May, extension possible). Balance on the final assessment.',
+              'Voorlopige aanslag in termijnen door het jaar heen; definitieve aangifte binnen 5 maanden na jaareinde (uiterlijk 31 mei, uitstel mogelijk). Restant op de definitieve aanslag.')},
+    {a:r.box2-r.dwht,  f:tr('Annual','Jaarlijks'), nm:tr('Box 2 — balance after the 15%','Box 2 — restant na de 15%'), who:tr('You (personally)','Jij (privé)'),
+      note:tr('Settled via your personal income tax return, due 1 May of the following year. The 15% already withheld is credited against the total; a negative balance here means a refund.',
+              'Afgerekend via je aangifte inkomstenbelasting, uiterlijk 1 mei van het volgende jaar. De al ingehouden 15% wordt verrekend; een negatief bedrag betekent teruggaaf.')}
   ];
   document.getElementById('payBody').innerHTML = pay.map(p => `
     <div class="pay">
@@ -988,24 +1014,27 @@ function renderZzp(r){
     `<tr${cls ? ` class="${cls}"` : ''}><td>${lbl}</td><td class="num">${a}</td><td class="num">${b}</td><td class="num">${c}</td></tr>`;
   const diff = full.netCash - z.net;
   const headline = diff >= 0
-    ? `Paying everything out this year, the BV nets <b>${eur(diff)}</b> more than the same business as an eenmanszaak.`
-    : `As an eenmanszaak you would net <b>${eur(-diff)}</b> more this year than the BV paying everything out.`;
+    ? tr(`Paying everything out this year, the BV nets <b>${eur(diff)}</b> more than the same business as an eenmanszaak.`,
+         `Als de BV alles uitkeert, houd je dit jaar <b>${eur(diff)}</b> meer over dan met hetzelfde bedrijf als eenmanszaak.`)
+    : tr(`As an eenmanszaak you would net <b>${eur(-diff)}</b> more this year than the BV paying everything out.`,
+         `Als eenmanszaak zou je dit jaar <b>${eur(-diff)}</b> meer overhouden dan de BV die alles uitkeert.`);
   document.getElementById('zzpBody').innerHTML = `
     <div class="zzp-scroll">
     <table class="sal-tbl">
-      <thead><tr><th>Same business, two legal forms</th><th>Eenmanszaak</th><th>BV — current mix</th><th>BV — all paid out</th></tr></thead>
+      <thead><tr><th>${tr('Same business, two legal forms','Zelfde bedrijf, twee rechtsvormen')}</th><th>Eenmanszaak</th><th>${tr('BV — current mix','BV — huidige mix')}</th><th>${tr('BV — all paid out','BV — alles uitgekeerd')}</th></tr></thead>
       <tbody>
-        ${row('Business earnings (revenue − costs)', eurS(z.winst), eurS(z.winst), eurS(z.winst))}
+        ${row(tr('Business earnings (revenue − costs)','Bedrijfsresultaat (omzet − kosten)'), eurS(z.winst), eurS(z.winst), eurS(z.winst))}
         ${row('Zelfstandigenaftrek + MKB-vrijstelling', '−'+eur(z.za + z.mkbAmt), '—', '—')}
-        ${row('Total tax this year', eur(z.tax), eur(r.totalTax), eur(full.totalTax))}
-        ${row('Left inside the BV (after tax)', '—', eurS(r.retained), eur(0))}
-        ${row('Effective rate on earnings', pct(z.rate), pct(r.taxPctEarnings), pct(full.taxPctEarnings))}
-        ${row('Net in pocket this year', eur(z.net), eur(r.netCash), eur(full.netCash), 'tot')}
+        ${row(tr('Total tax this year','Totale belasting dit jaar'), eur(z.tax), eur(r.totalTax), eur(full.totalTax))}
+        ${row(tr('Left inside the BV (after tax)','Blijft in de BV (na belasting)'), '—', eurS(r.retained), eur(0))}
+        ${row(tr('Effective rate on earnings','Effectieve druk op het resultaat'), pct(z.rate), pct(r.taxPctEarnings), pct(full.taxPctEarnings))}
+        ${row(tr('Net in pocket this year','Netto in je zak dit jaar'), eur(z.net), eur(r.netCash), eur(full.netCash), 'tot')}
       </tbody>
     </table>
     </div>
-    <div class="credit-note" style="margin-top:12px">${headline} Retaining profit in the BV defers Box 2 and can shift the picture further.</div>
-    <div class="opt-note">Eenmanszaak side assumes the urencriterium (1,225 h/year) is met and excludes the one-off startersaftrek. The deduction relief is capped at the ${pct(P.b2r)} rate (tariefsaanpassing${z.tariefCorr > 0.5 ? ': +' + eur(z.tariefCorr) + ' here' : ''}). Neither side includes pension build-up or disability insurance.</div>`;
+    <div class="credit-note" style="margin-top:12px">${headline} ${tr('Retaining profit in the BV defers Box 2 and can shift the picture further.','Winst inhouden in de BV stelt box 2 uit en kan het beeld verder verschuiven.')}</div>
+    <div class="opt-note">${tr(`Eenmanszaak side assumes the urencriterium (1,225 h/year) is met and excludes the one-off startersaftrek. The deduction relief is capped at the ${pct(P.b2r)} rate (tariefsaanpassing${z.tariefCorr > 0.5 ? ': +' + eur(z.tariefCorr) + ' here' : ''}). Neither side includes pension build-up or disability insurance.`,
+      `De eenmanszaak-kant gaat uit van het urencriterium (1.225 uur/jaar) en laat de eenmalige startersaftrek buiten beschouwing. Het voordeel van de aftrekposten is begrensd op ${pct(P.b2r)} (tariefsaanpassing${z.tariefCorr > 0.5 ? ': +' + eur(z.tariefCorr) + ' hier' : ''}). Geen van beide kanten bevat pensioenopbouw of een AOV.`)}</div>`;
 }
 
 /* ============ SCENARIO PERSISTENCE (URL hash + localStorage) ============ */
@@ -1036,37 +1065,40 @@ loadState();
 
 /* ============ BUILD INPUT CONTROLS ============ */
 const inputWrap = document.getElementById('inputs');
-INPUTS.forEach(c => {
-  const el = document.createElement('div');
-  el.className = 'ctrl';
-  el.innerHTML = `
-    <div class="ctrl-head">
-      <label for="${c.id}">${c.label}${c.hint?`<span class="hint">${c.hint}</span>`:''}</label>
-      <div class="ctrl-val"><span class="pre">${c.unit||''}</span><input class="num" id="${c.id}-num" type="number" inputmode="decimal" min="0" step="${c.numStep||c.step}" value="${state[c.id]}"></div>
-    </div>
-    <input class="slider" id="${c.id}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${clamp(state[c.id],c.min,c.max)}">`;
-  inputWrap.appendChild(el);
+function buildInputs(){
+  inputWrap.textContent = '';
+  INPUTS.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'ctrl';
+    el.innerHTML = `
+      <div class="ctrl-head">
+        <label for="${c.id}">${L(c.label)}${c.hint?`<span class="hint">${L(c.hint)}</span>`:''}</label>
+        <div class="ctrl-val"><span class="pre">${c.unit||''}</span><input class="num" id="${c.id}-num" type="number" inputmode="decimal" min="0" step="${c.numStep||c.step}" value="${state[c.id]}"></div>
+      </div>
+      <input class="slider" id="${c.id}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${clamp(state[c.id],c.min,c.max)}">`;
+    inputWrap.appendChild(el);
 
-  const slider = el.querySelector('.slider');
-  const num = el.querySelector('.num');
-  const fill = () => slider.style.setProperty('--fill', ((clamp(state[c.id],c.min,c.max)-c.min)/(c.max-c.min)*100)+'%');
-  slider.addEventListener('input', () => { state[c.id] = +slider.value; num.value = slider.value; fill(); render(); saveStateSoon(); });
-  num.addEventListener('input', () => {
-    const v = num.value === '' ? 0 : +num.value;
-    state[c.id] = v; slider.value = clamp(v, c.min, c.max); fill(); render(); saveStateSoon();
+    const slider = el.querySelector('.slider');
+    const num = el.querySelector('.num');
+    const fill = () => slider.style.setProperty('--fill', ((clamp(state[c.id],c.min,c.max)-c.min)/(c.max-c.min)*100)+'%');
+    slider.addEventListener('input', () => { state[c.id] = +slider.value; num.value = slider.value; fill(); render(); saveStateSoon(); });
+    num.addEventListener('input', () => {
+      const v = num.value === '' ? 0 : +num.value;
+      state[c.id] = v; slider.value = clamp(v, c.min, c.max); fill(); render(); saveStateSoon();
+    });
+    fill();
   });
-  fill();
-});
 
-const partnerCtrl = document.createElement('div');
-partnerCtrl.className = 'ctrl ctrl-check';
-partnerCtrl.innerHTML = `
-  <label for="partner">Fiscal partner<span class="hint">split the dividend 50/50 in Box 2</span></label>
-  <input type="checkbox" id="partner">`;
-inputWrap.appendChild(partnerCtrl);
-const partnerBox = partnerCtrl.querySelector('input');
-partnerBox.checked = !!state.partner;
-partnerBox.addEventListener('change', () => { state.partner = partnerBox.checked ? 1 : 0; render(); saveStateSoon(); });
+  const partnerCtrl = document.createElement('div');
+  partnerCtrl.className = 'ctrl ctrl-check';
+  partnerCtrl.innerHTML = `
+    <label for="partner">${tr('Fiscal partner','Fiscaal partner')}<span class="hint">${tr('split the dividend 50/50 in Box 2','verdeel het dividend 50/50 in box 2')}</span></label>
+    <input type="checkbox" id="partner">`;
+  inputWrap.appendChild(partnerCtrl);
+  const partnerBox = partnerCtrl.querySelector('input');
+  partnerBox.checked = !!state.partner;
+  partnerBox.addEventListener('change', () => { state.partner = partnerBox.checked ? 1 : 0; render(); saveStateSoon(); });
+}
 
 /* presets */
 const PRESETS = {
@@ -1093,7 +1125,10 @@ const copyBtn = document.getElementById('copyLink');
 copyBtn.addEventListener('click', () => {
   const qs = stateToQS();
   const url = location.origin + location.pathname + (qs ? '#'+qs : '');
-  const done = ok => { copyBtn.textContent = ok ? 'Copied' : 'Copy failed'; setTimeout(() => copyBtn.textContent = 'Copy link', 1400); };
+  const done = ok => {
+    copyBtn.textContent = ok ? tr('Copied','Gekopieerd') : tr('Copy failed','Kopiëren mislukt');
+    setTimeout(() => copyBtn.textContent = tr('Copy link','Kopieer link'), 1400);
+  };
   if (navigator.clipboard && navigator.clipboard.writeText)
     navigator.clipboard.writeText(url).then(() => done(true), () => done(false));
   else done(false);
@@ -1102,27 +1137,30 @@ window.addEventListener('hashchange', () => { loadState(); applyState({}); });
 
 /* ============ BUILD ASSUMPTION CONTROLS ============ */
 const assumpWrap = document.getElementById('assumpBody');
-let grid = null;
-PARAMS.forEach(p => {
-  if (p.group){
-    const h = document.createElement('div'); h.className='assump-grp'; h.textContent=p.group;
-    assumpWrap.appendChild(h);
-    grid = document.createElement('div'); grid.className='assump-grid';
-    assumpWrap.appendChild(grid);
-    return;
-  }
-  const disp = p.type==='pct' ? +(p.val*100).toFixed(4) : p.val;
-  const unit = p.type==='pct' ? '%' : '€';
-  const row = document.createElement('div'); row.className='prm';
-  row.innerHTML = `<label for="p-${p.id}">${p.label}</label>
-    <div class="pbox"><input id="p-${p.id}" type="number" inputmode="decimal" step="any" value="${disp}"><span class="u">${unit}</span></div>`;
-  grid.appendChild(row);
-  row.querySelector('input').addEventListener('input', e => {
-    const raw = e.target.value === '' ? 0 : +e.target.value;
-    P[p.id] = p.type==='pct' ? raw/100 : raw;
-    render();
+function buildAssumptions(){
+  assumpWrap.textContent = '';
+  let grid = null;
+  PARAMS.forEach(p => {
+    if (p.group){
+      const h = document.createElement('div'); h.className='assump-grp'; h.textContent=L(p.group);
+      assumpWrap.appendChild(h);
+      grid = document.createElement('div'); grid.className='assump-grid';
+      assumpWrap.appendChild(grid);
+      return;
+    }
+    const disp = p.type==='pct' ? +(P[p.id]*100).toFixed(4) : P[p.id];
+    const unit = p.type==='pct' ? '%' : '€';
+    const row = document.createElement('div'); row.className='prm';
+    row.innerHTML = `<label for="p-${p.id}">${L(p.label)}</label>
+      <div class="pbox"><input id="p-${p.id}" type="number" inputmode="decimal" step="any" value="${disp}"><span class="u">${unit}</span></div>`;
+    grid.appendChild(row);
+    row.querySelector('input').addEventListener('input', e => {
+      const raw = e.target.value === '' ? 0 : +e.target.value;
+      P[p.id] = p.type==='pct' ? raw/100 : raw;
+      render();
+    });
   });
-});
+}
 document.getElementById('resetParams').addEventListener('click', () => {
   PARAMS.forEach(p => {
     if (p.group) return;
@@ -1133,6 +1171,66 @@ document.getElementById('resetParams').addEventListener('click', () => {
   render();
 });
 
+/* ============ LANGUAGE ============ */
+const STATIC_TXT = [
+  ['brandSub', 'Corporate and personal tax for a Dutch BV with a single shareholder/director. Drag the inputs — every euro of tax recalculates live.',
+               'Zakelijke en persoonlijke belasting voor een Nederlandse BV met één aandeelhouder/directeur. Versleep de invoer — elke euro belasting wordt live herberekend.'],
+  ['yearTxt', 'Tax year 2026', 'Belastingjaar 2026'],
+  ['kTaxL', 'Total tax', 'Totale belasting'],
+  ['kTaxS', 'excl. BTW pass-through', 'excl. BTW-doorbetaling'],
+  ['kCashL', 'Net cash to you', 'Netto naar privé'],
+  ['kCashS', 'salary + dividend, after tax', 'salaris + dividend, na belasting'],
+  ['kRateL', 'Effective tax rate', 'Effectieve belastingdruk'],
+  ['kRateS', 'on take-home (salary + dividend)', 'op je opname (salaris + dividend)'],
+  ['kRetL', 'Retained in the BV', 'Achtergebleven in de BV'],
+  ['kRetS', 'after-tax profit kept inside', 'ingehouden winst na belasting'],
+  ['inputsH', 'Your inputs', 'Jouw invoer'],
+  ['inputsTag', 'editable', 'aanpasbaar'],
+  ['revLbl', 'Annual revenue (excl. BTW)', 'Jaaromzet (excl. BTW)'],
+  ['btnReset', 'Reset', 'Reset'],
+  ['btnLean', 'Min. salary', 'Min. salaris'],
+  ['copyLink', 'Copy link', 'Kopieer link'],
+  ['flowH', 'Where every euro of revenue goes', 'Waar elke euro omzet naartoe gaat'],
+  ['corpH', 'Corporate — the BV', 'Zakelijk — de BV'],
+  ['btwTag', 'pass-through', 'doorbetaling'],
+  ['salH', 'Salary — Box 1', 'Salaris — box 1'],
+  ['divH', 'Dividend — Box 2', 'Dividend — box 2'],
+  ['optH', 'Salary / dividend optimiser', 'Salaris/dividend-optimalisatie'],
+  ['zzpTag', 'same revenue &amp; costs', 'zelfde omzet &amp; kosten'],
+  ['donutH', 'Tax composition', 'Belastingmix'],
+  ['holeT', 'Total tax', 'Totale belasting'],
+  ['sumH', 'Summary', 'Samenvatting'],
+  ['payH', 'When each tax is paid', 'Wanneer je elke belasting betaalt'],
+  ['payTag', 'calendar-year BV', 'BV met kalenderjaar'],
+  ['assumpH', '2026 tax parameters', 'Belastingparameters 2026'],
+  ['assumpIntro', 'Every rate and threshold the model reads. Edit any cell to test a different year or scenario — the whole page recalculates.',
+                  'Alle tarieven en grenzen die het model gebruikt. Pas een cel aan om een ander jaar of scenario te testen — de hele pagina rekent opnieuw.'],
+  ['resetParams', 'Reset to 2026 figures', 'Terug naar de cijfers van 2026'],
+  ['footTxt', '<b>This is a planning model, not tax advice.</b> It assumes a single shareholder/DGA below AOW age, a Dec 31 year-end, and the low Zvw "bijdrage" rate (4.85%) withheld from the DGA. The algemene heffingskorting phases out on verzamelinkomen (salary plus your Box 2 share); heffingskortingen offset the combined Box 1 + Box 2 levy and are never refundable. The fiscal-partner option splits the dividend 50/50 and assumes the partner\'s own credits are unaffected. It ignores Box 3, the 30% ruling, mortgage interest, pension build-up, prior-year retained earnings and the gebruikelijkloon comparison test — the customary-salary minimum is an editable parameter, flagged but not enforced. Confirm the structure and the Zvw treatment with a Dutch accountant before acting.',
+              '<b>Dit is een planningsmodel, geen belastingadvies.</b> Het gaat uit van één aandeelhouder/DGA onder de AOW-leeftijd, een boekjaar tot en met 31 december en het lage Zvw-bijdragetarief (4,85%) ingehouden bij de DGA. De algemene heffingskorting bouwt af op het verzamelinkomen (salaris plus jouw box 2-deel); heffingskortingen verrekenen met de gecombineerde box 1 + box 2-heffing en worden nooit uitbetaald. De fiscaal-partneroptie verdeelt het dividend 50/50 en gaat ervan uit dat de kortingen van de partner ongemoeid blijven. Box 3, de 30%-regeling, hypotheekrente, pensioenopbouw, ingehouden winst uit eerdere jaren en de gebruikelijkloontoets blijven buiten beschouwing — het gebruikelijk loon is een aanpasbare parameter, gesignaleerd maar niet afgedwongen. Leg de structuur en de Zvw-behandeling voor aan een Nederlandse accountant voordat je handelt.'],
+  ['footSrc', 'Sources: Belastingdienst (voorlopige aanslag 2026; dividendbelasting; VPB), KVK 2026 rates, Salaris Vanmorgen (Zvw 2026), De Zaak (Box 2 2026).',
+              'Bronnen: Belastingdienst (voorlopige aanslag 2026; dividendbelasting; VPB), KVK-tarieven 2026, Salaris Vanmorgen (Zvw 2026), De Zaak (box 2 2026).']
+];
+function applyLang(){
+  document.documentElement.lang = LANG;
+  document.getElementById('langToggle').textContent = LANG === 'nl' ? 'EN' : 'NL';
+  STATIC_TXT.forEach(([id, en, nl]) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = tr(en, nl);
+  });
+}
+document.getElementById('langToggle').addEventListener('click', () => {
+  LANG = LANG === 'nl' ? 'en' : 'nl';
+  try{ localStorage.setItem('bvtax-lang', LANG); }catch(e){}
+  applyLang();
+  buildInputs();
+  buildAssumptions();
+  render();
+});
+
+applyLang();
+buildInputs();
+buildAssumptions();
 render();
 
 /* ---------- theme toggle ---------- */

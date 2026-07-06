@@ -17,13 +17,17 @@ machine, so whatever figures you enter stay local and never reach a server.
 - **Optimiser** — sweeps every salary/dividend split at your current total payout,
   marks the best compliant mix, and prices the next €1,000 of pre-tax profit taken
   as salary, as dividend, or retained in the BV.
+- **BV vs eenmanszaak** — the same revenue and costs computed as an IB-ondernemer
+  (zelfstandigenaftrek, MKB-winstvrijstelling, tariefsaanpassing) next to the BV.
 - **Fiscal partner** — optionally splits the dividend 50/50 in Box 2 so both
   partners' low brackets are used.
 - **Shareable scenarios** — inputs persist in the URL hash and localStorage, and
   the "Copy link" button puts an exact-scenario URL on the clipboard.
-- The 2026 rates and thresholds — including the full arbeidskorting curve and the
-  gebruikelijk loon minimum — sit in the **2026 tax parameters** panel and can all
-  be edited.
+- **Dutch / English** — a language toggle in the header; it follows your browser
+  language on first visit and switches number formatting along with the text.
+- The 2026 rates and thresholds — including the full arbeidskorting curve, the
+  gebruikelijk loon minimum and the ZZP deductions — sit in the **2026 tax
+  parameters** panel and can all be edited.
 - The colour theme follows your system setting and remembers it if you switch.
 
 ## Model notes
