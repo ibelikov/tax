@@ -215,6 +215,13 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .donut-legend .leg{padding:7px 0;border-bottom:1px dashed var(--line)}
 .donut-legend .leg:last-child{border-bottom:0}
 
+/* Optimiser */
+.opt-row{display:grid;grid-template-columns:1fr 264px;gap:24px;align-items:start}
+#optSvg{width:100%;height:auto;display:block;cursor:crosshair}
+#optSvg text{font-family:inherit}
+.opt-note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
+.routes-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--navy);margin:2px 0 4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+
 /* Salary annual/monthly table */
 .sal-tbl{width:100%;border-collapse:collapse}
 .sal-tbl th{text-align:right;font-size:11px;color:var(--faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 0 9px}
@@ -272,6 +279,7 @@ footer .src{color:var(--faint);font-size:11.5px;margin-top:8px}
   .cards-2{grid-template-columns:1fr}
   .flow-legend{grid-template-columns:repeat(2,1fr)}
   .donut-row{grid-template-columns:1fr;justify-items:center;text-align:left}
+  .opt-row{grid-template-columns:1fr}
   .assump-grid{grid-template-columns:1fr}
 }
 @media(max-width:560px){
@@ -380,6 +388,20 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
         <div class="card">
           <div class="card-h"><span class="ico" style="background:#be123c">3</span><h2>Dividend — Box 2</h2></div>
           <div class="card-b" id="divBody"></div>
+        </div>
+      </div>
+
+      <!-- Optimiser -->
+      <div class="card">
+        <div class="card-h"><span class="ico" style="background:linear-gradient(135deg,#7c3aed,#2563eb)">⇄</span><h2>Salary / dividend optimiser</h2><span class="tag" id="optTag">—</span></div>
+        <div class="card-b">
+          <div class="opt-row">
+            <div>
+              <svg id="optSvg" viewBox="0 0 640 250" role="img" aria-label="Net cash for every salary and dividend split at the current total payout"></svg>
+              <div class="opt-note" id="optNote"></div>
+            </div>
+            <div id="optRoutes"></div>
+          </div>
         </div>
       </div>
 
@@ -649,6 +671,121 @@ function buildDonut(segs, tot){
   });
 }
 
+/* ---------- optimiser ---------- */
+const optSvg = document.getElementById('optSvg');
+const OPT_N = 120, OPT_W = 640, OPT_H = 250, OPT_L = 56, OPT_R = 14, OPT_T = 18, OPT_B = 34;
+let optPts = null, optGeom = null;
+
+function renderOptimizer(r){
+  const E = state.salary + state.dividend;
+  const note = document.getElementById('optNote');
+  document.getElementById('optTag').textContent = 'total payout ' + eur(E);
+
+  // marginal routes: what the next €1,000 of pre-tax profit costs per route
+  const D = 1000;
+  const sAlt = calc({...state, salary: state.salary + D});
+  const pAlt = calc({...state, cost: state.cost - D});
+  const extraDiv = D - (pAlt.vpb - r.vpb);
+  const dAlt = calc({...state, cost: state.cost - D, dividend: state.dividend + extraDiv});
+  const salRate = 1 - (sAlt.netCash - r.netCash) / D;
+  const divRate = 1 - (dAlt.netCash - r.netCash) / D;
+  const retRate = 1 - (pAlt.retained - r.retained) / D;
+  const salBest = salRate <= divRate;
+  const routeLn = (lbl, sub, rate, best) =>
+    `<div class="ln"><span class="ln-l">${lbl}<span class="ln-sub">${sub}</span></span><span class="ln-v${best ? ' pos' : ''}">${eur((1 - rate) * D)} · ${pct(rate)}</span></div>`;
+  document.getElementById('optRoutes').innerHTML =
+    '<div class="routes-h">Next €1,000 of pre-tax profit</div>' +
+    routeLn('Paid as salary', 'Box 1 + Zvw; deductible for VPB', salRate, salBest) +
+    routeLn('Paid as dividend', 'VPB now + Box 2 + AHK claw-back', divRate, !salBest) +
+    routeLn('Retained in the BV', 'VPB only now; Box 2 deferred until payout', retRate, false) +
+    '<div class="opt-note">Net in pocket · effective rate. Green marks the cheaper way to take the next euro out this year; retention defers Box 2 rather than avoiding it.</div>';
+
+  if (E < 1000){
+    optSvg.innerHTML = '';
+    optPts = null;
+    note.textContent = 'Set a salary or dividend to see the optimal split at a fixed total payout.';
+    return;
+  }
+
+  const pts = [];
+  for (let i = 0; i <= OPT_N; i++){
+    const sal = E * i / OPT_N;
+    const rr = calc({...state, salary: sal, dividend: E - sal});
+    pts.push({sal, div: E - sal, net: rr.netCash, tax: rr.totalTax, ok: (E - sal) <= rr.atp + 0.5});
+  }
+  optPts = pts;
+
+  // best point: salary at least gebruikelijk loon (where reachable), dividend covered by this year's profit
+  const minSal = Math.min(P.gebrLoon, E);
+  let cand = pts.filter(p => p.sal >= minSal - 1e-6 && p.ok);
+  if (!cand.length) cand = pts.filter(p => p.ok);
+  if (!cand.length) cand = pts;
+  const best = cand.reduce((a, b) => b.net > a.net ? b : a);
+  const cur = pts.reduce((a, b) => Math.abs(b.sal - state.salary) < Math.abs(a.sal - state.salary) ? b : a);
+
+  let lo = Infinity, hi = -Infinity;
+  pts.forEach(p => { lo = Math.min(lo, p.net); hi = Math.max(hi, p.net); });
+  const padY = Math.max((hi - lo) * .08, 500);
+  lo -= padY; hi += padY;
+  const xs = v => OPT_L + (OPT_W - OPT_L - OPT_R) * v / E;
+  const ys = v => OPT_T + (OPT_H - OPT_T - OPT_B) * (1 - (v - lo) / (hi - lo));
+  optGeom = {xs, ys};
+
+  let el = '';
+  if (minSal > 0)
+    el += `<rect x="${OPT_L}" y="${OPT_T}" width="${(xs(minSal) - OPT_L).toFixed(1)}" height="${OPT_H - OPT_T - OPT_B}" fill="var(--warn-border)" opacity=".18"/>` +
+          `<line x1="${xs(minSal).toFixed(1)}" y1="${OPT_T}" x2="${xs(minSal).toFixed(1)}" y2="${OPT_H - OPT_B}" stroke="var(--warn-border)" stroke-dasharray="3 4"/>`;
+  for (let k = 0; k <= 3; k++){
+    const v = lo + (hi - lo) * k / 3, y = ys(v).toFixed(1);
+    el += `<line x1="${OPT_L}" y1="${y}" x2="${OPT_W - OPT_R}" y2="${y}" stroke="var(--line)"/>` +
+          `<text x="${OPT_L - 7}" y="${+y + 4}" text-anchor="end" font-size="10.5" fill="var(--faint)">${eurK(v)}</text>`;
+  }
+  for (let k = 0; k <= 4; k++){
+    const v = E * k / 4;
+    el += `<text x="${xs(v).toFixed(1)}" y="${OPT_H - OPT_B + 15}" text-anchor="middle" font-size="10.5" fill="var(--faint)">${eurK(v)}</text>`;
+  }
+  el += `<text x="${(OPT_L + OPT_W - OPT_R) / 2}" y="${OPT_H - 3}" text-anchor="middle" font-size="10.5" fill="var(--muted)">gross salary — the rest of the payout is dividend</text>`;
+  let solid = '', dash = '';
+  for (let i = 0; i < OPT_N; i++){
+    const a = pts[i], b = pts[i + 1];
+    const seg = `M${xs(a.sal).toFixed(1)} ${ys(a.net).toFixed(1)}L${xs(b.sal).toFixed(1)} ${ys(b.net).toFixed(1)}`;
+    if (a.ok && b.ok) solid += seg; else dash += seg;
+  }
+  if (dash)  el += `<path d="${dash}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="4 5" opacity=".55"/>`;
+  if (solid) el += `<path d="${solid}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+  el += `<line x1="${xs(best.sal).toFixed(1)}" y1="${ys(best.net).toFixed(1)}" x2="${xs(best.sal).toFixed(1)}" y2="${OPT_H - OPT_B}" stroke="var(--good)" stroke-dasharray="3 4"/>`;
+  el += `<circle cx="${xs(cur.sal).toFixed(1)}" cy="${ys(cur.net).toFixed(1)}" r="4.5" fill="var(--card)" stroke="var(--navy)" stroke-width="2.5"/>`;
+  el += `<circle cx="${xs(best.sal).toFixed(1)}" cy="${ys(best.net).toFixed(1)}" r="4.5" fill="var(--good)"/>`;
+  el += `<text x="${xs(best.sal).toFixed(1)}" y="${(ys(best.net) - 9).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--good)">best</text>`;
+  el += `<text x="${xs(cur.sal).toFixed(1)}" y="${(ys(cur.net) + 18).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--navy)">now</text>`;
+  el += `<circle id="optDot" r="4" fill="var(--accent)" opacity="0"/>`;
+  optSvg.innerHTML = el;
+
+  const gain = best.net - r.netCash;
+  note.innerHTML = `Keeping the total payout at <b>${eur(E)}</b>, the best split is <b>${eur(best.sal)} salary + ${eur(best.div)} dividend</b> → <b>${eur(best.net)}</b> net` +
+    (gain > 250 ? ` — <b>${eur(gain)}</b> more than your current mix.` : ' — your current mix is already at the optimum.') +
+    ' Shaded zone: salary below the gebruikelijk loon minimum. Dashed: dividend exceeds this year’s after-tax profit.';
+}
+
+function optHover(e){
+  if (!optPts || !optGeom) return;
+  const rect = optSvg.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width * OPT_W;
+  const i = clamp(Math.round((x - OPT_L) / (OPT_W - OPT_L - OPT_R) * OPT_N), 0, OPT_N);
+  const p = optPts[i];
+  const dot = document.getElementById('optDot');
+  if (dot){ dot.setAttribute('cx', optGeom.xs(p.sal).toFixed(1)); dot.setAttribute('cy', optGeom.ys(p.net).toFixed(1)); dot.setAttribute('opacity', '1'); }
+  chartTip.innerHTML = `${eur(p.sal)} salary + ${eur(p.div)} dividend<span class="tval">${eur(p.net)} net</span><span class="tpct">tax ${eur(p.tax)}</span>`;
+  chartTip.classList.add('show');
+  moveTip(e);
+}
+optSvg.addEventListener('mousemove', optHover);
+optSvg.addEventListener('mouseleave', () => {
+  hideTip();
+  const dot = document.getElementById('optDot');
+  if (dot) dot.setAttribute('opacity', '0');
+});
+
 /* ============ RENDER ============ */
 function render(){
   const r = calc();
@@ -776,6 +913,8 @@ function render(){
       <div class="amt"><div class="a tnum">${eurS(p.a)}</div><div class="f">${p.f}</div></div>
       <div class="body"><div class="nm">${p.nm}</div><div class="who">${p.who}</div><div class="note">${p.note}</div></div>
     </div>`).join('');
+
+  renderOptimizer(r);
 }
 
 /* ============ SCENARIO PERSISTENCE (URL hash + localStorage) ============ */
