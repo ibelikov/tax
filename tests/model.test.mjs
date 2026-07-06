@@ -58,6 +58,15 @@ test('arbeidskorting curve is continuous and peaks at the published max', () => 
   assert.equal(akFor(200000), 0);
 });
 
+test('fiscal partner split doubles the low Box 2 bracket', () => {
+  const single = calc({...base, salary: 0, dividend: 130000, partner: 0});
+  const split  = calc({...base, salary: 0, dividend: 130000, partner: 1});
+  assert.equal(split.box2b, 0);           // both halves stay inside the low bracket
+  assert.ok(single.box2b > 15000);
+  assert.ok(split.box2 < single.box2);
+  assert.ok(split.ahk > single.ahk);      // DGA verzamelinkomen only counts their own half
+});
+
 test('ahkFor matches published bounds', () => {
   assert.equal(ahkFor(0), P.ahkMax);
   assert.equal(ahkFor(P.ahkStart), P.ahkMax);

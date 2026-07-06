@@ -180,6 +180,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .revenue-readout .l2{font-size:11px;opacity:.65;font-weight:500;font-variant-numeric:tabular-nums}
 .revenue-readout .v{font-size:20px;font-weight:700;letter-spacing:-.01em}
 
+.ctrl-check{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ctrl-check input{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;margin:0;flex:0 0 auto}
+
 .presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .presets button{flex:1;min-width:0;font:600 12px/1 inherit;color:var(--btn-ink);background:var(--btn-bg);border:1px solid var(--line-strong);border-radius:8px;padding:9px 8px;cursor:pointer;transition:background .15s,border-color .15s}
 .presets button:hover{background:var(--btn-bg-h);border-color:var(--line-strong)}
@@ -520,6 +523,7 @@ const PARAMS = [
 const state = {};
 const P = {};
 INPUTS.forEach(c => state[c.id] = c.val);
+state.partner = 0;
 PARAMS.forEach(p => { if (!p.group) P[p.id] = p.val; });
 
 /* ---------- credit curves ---------- */
@@ -554,25 +558,28 @@ function calc(s){
   const vpb  = vpb1 + vpb2;
   const atp  = pbt - vpb;
 
-  // Box 2 — dividend
-  const box2Gross = box2On(dividend);
-  const box2a = P.box2r1 * Math.min(dividend, P.box2thresh);
+  // Box 2 — dividend, optionally split 50/50 with a fiscal partner
+  const dgaDiv     = s.partner ? dividend / 2 : dividend;
+  const partnerDiv = dividend - dgaDiv;
+  const dgaBox2    = box2On(dgaDiv);
+  const box2Gross  = dgaBox2 + box2On(partnerDiv);
+  const box2a = P.box2r1 * (Math.min(dgaDiv, P.box2thresh) + Math.min(partnerDiv, P.box2thresh));
   const box2b = box2Gross - box2a;
   const dwht  = P.dwht * dividend;
 
-  // Box 1 — salary; AHK phases out on verzamelinkomen (Box 1 + Box 2)
+  // Box 1 — salary; AHK phases out on verzamelinkomen (Box 1 + own Box 2 share)
   const t1 = P.b1r * Math.min(salary, P.b1lim);
   const t2 = P.b2r * Math.max(Math.min(salary, P.b2lim) - P.b1lim, 0);
   const t3 = P.b3r * Math.max(salary - P.b2lim, 0);
   const bracketTax = t1 + t2 + t3;
-  const ahk = ahkFor(salary + dividend);
+  const ahk = ahkFor(salary + dgaDiv);
   const ahkClaw = ahkFor(salary) - ahk;
   const ak  = akFor(salary);
 
-  // credits offset the combined Box 1 + Box 2 levy, never below zero
+  // credits offset the DGA's combined Box 1 + Box 2 levy, never below zero
   const credits   = ahk + ak;
   const creditsB1 = Math.min(credits, bracketTax);
-  const creditsB2 = Math.min(credits - creditsB1, box2Gross);
+  const creditsB2 = Math.min(credits - creditsB1, dgaBox2);
   const creditsUnused = credits - creditsB1 - creditsB2;
   const nit = bracketTax - creditsB1;
   const zvw = P.zvwRate * Math.min(salary, P.zvwMax);
@@ -591,7 +598,7 @@ function calc(s){
 
   return {revenue,billDays,cost,salary,dividend,outputBtw,inputBtw,netBtw,
     pbt,vpb1,vpb2,vpb,atp,t1,t2,t3,ahk,ahkClaw,ak,creditsB1,creditsB2,creditsUnused,
-    nit,zvw,netSalary,box2a,box2b,box2,dwht,netDiv,totalTax,netCash,retained,
+    nit,zvw,netSalary,dgaDiv,partnerDiv,box2a,box2b,box2,dwht,netDiv,totalTax,netCash,retained,
     taxPctEarnings,effTakeHome};
 }
 /* MODEL-END */
@@ -865,7 +872,8 @@ function render(){
   /* ----- dividend ----- */
   document.getElementById('divBody').innerHTML =
     ln('Dividend distributed', eur(r.dividend)) +
-    ln('Box 2 @ '+pct(P.box2r1)+' (first '+eur(P.box2thresh)+')', '−'+eur(r.box2a), {vcls:'neg'}) +
+    (r.partnerDiv > 0 ? ln('Split 50/50 with your fiscal partner — each half taxed separately. Assumes the partner’s own credits are unaffected.', '', {cls:'muted'}) : '') +
+    ln('Box 2 @ '+pct(P.box2r1)+' (first '+eur(P.box2thresh)+(r.partnerDiv > 0 ? ' each' : '')+')', '−'+eur(r.box2a), {vcls:'neg'}) +
     ln('Box 2 @ '+pct(P.box2r2)+' (above)', '−'+eur(r.box2b), {vcls:'neg'}) +
     (r.creditsB2 > .5 ? ln('Unused heffingskortingen offset', '+'+eur(r.creditsB2), {vcls:'pos'}) : '') +
     ln('Total Box 2 tax', '−'+eur(r.box2), {cls:'sub', vcls:'neg'}) +
@@ -919,7 +927,7 @@ function render(){
 
 /* ============ SCENARIO PERSISTENCE (URL hash + localStorage) ============ */
 const DEFAULTS = {...state};
-const HASH_KEYS = [['rate','rate'],['h','hoursDay'],['days','workDays'],['vac','vacation'],['cost','cost'],['sal','salary'],['div','dividend']];
+const HASH_KEYS = [['rate','rate'],['h','hoursDay'],['days','workDays'],['vac','vacation'],['cost','cost'],['sal','salary'],['div','dividend'],['fp','partner']];
 function stateToQS(){
   const q = new URLSearchParams();
   HASH_KEYS.forEach(([k,id]) => { if (state[id] !== DEFAULTS[id]) q.set(k, state[id]); });
@@ -967,10 +975,20 @@ INPUTS.forEach(c => {
   fill();
 });
 
+const partnerCtrl = document.createElement('div');
+partnerCtrl.className = 'ctrl ctrl-check';
+partnerCtrl.innerHTML = `
+  <label for="partner">Fiscal partner<span class="hint">split the dividend 50/50 in Box 2</span></label>
+  <input type="checkbox" id="partner">`;
+inputWrap.appendChild(partnerCtrl);
+const partnerBox = partnerCtrl.querySelector('input');
+partnerBox.checked = !!state.partner;
+partnerBox.addEventListener('change', () => { state.partner = partnerBox.checked ? 1 : 0; render(); saveStateSoon(); });
+
 /* presets */
 const PRESETS = {
-  reset: {rate:100, hoursDay:8, workDays:260, vacation:25, cost:10000, salary:70000, dividend:80000},
-  lean:  {rate:100, hoursDay:8, workDays:260, vacation:25, cost:10000, salary:58000, dividend:80000}
+  reset: {rate:100, hoursDay:8, workDays:260, vacation:25, cost:10000, salary:70000, dividend:80000, partner:0},
+  lean:  {rate:100, hoursDay:8, workDays:260, vacation:25, cost:10000, salary:58000, dividend:80000, partner:0}
 };
 function applyState(s){
   Object.assign(state, s);
@@ -981,6 +999,7 @@ function applyState(s){
     num.value = state[c.id];
     slider.style.setProperty('--fill', ((clamp(state[c.id],c.min,c.max)-c.min)/(c.max-c.min)*100)+'%');
   });
+  document.getElementById('partner').checked = !!state.partner;
   render();
   saveState();
 }
