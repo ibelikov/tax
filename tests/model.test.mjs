@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const src = html.match(/\/\* MODEL-START \*\/([\s\S]*?)\/\* MODEL-END \*\//)[1];
-const model = new Function(src + '\nreturn {calc, P, state, INPUTS, PARAMS, ahkFor, akFor};')();
-const {calc, P, ahkFor, akFor} = model;
+const model = new Function(src + '\nreturn {calc, calcZzp, P, state, INPUTS, PARAMS, ahkFor, akFor};')();
+const {calc, calcZzp, P, ahkFor, akFor} = model;
 const base = {...model.state};
 
 test('default scenario arithmetic', () => {
@@ -71,4 +71,24 @@ test('ahkFor matches published bounds', () => {
   assert.equal(ahkFor(0), P.ahkMax);
   assert.equal(ahkFor(P.ahkStart), P.ahkMax);
   assert.equal(ahkFor(200000), 0);
+});
+
+test('eenmanszaak deductions and tariefsaanpassing', () => {
+  const z = calcZzp(base); // winst 178,000
+  assert.equal(z.za, 1200);
+  assert.ok(Math.abs(z.mkbAmt - 0.127 * 176800) < 0.01);
+  // relief for the deducted euros is capped at the bracket-2 rate
+  const expectedCorr = (P.b3r - P.b2r) * (z.winst - z.taxable);
+  assert.ok(Math.abs(z.tariefCorr - expectedCorr) < 0.01);
+  assert.ok(z.net > 0 && z.net < z.winst);
+});
+
+test('eenmanszaak edge cases', () => {
+  const tiny = calcZzp({...base, rate: 1, cost: 0}); // winst 1,880
+  assert.ok(tiny.tax >= 0);            // credits never refund
+  assert.equal(tiny.tariefCorr, 0);
+  const loss = calcZzp({...base, rate: 0, cost: 5000});
+  assert.equal(loss.za, 0);            // deduction capped by profit
+  assert.equal(loss.tax, 0);
+  assert.equal(loss.net, loss.winst);  // the loss passes through untaxed
 });

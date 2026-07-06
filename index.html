@@ -226,6 +226,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .opt-note{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
 .routes-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--navy);margin:2px 0 4px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 
+/* BV vs ZZP */
+.zzp-scroll{overflow-x:auto}
+.zzp-scroll .sal-tbl{min-width:560px}
+
 /* Salary annual/monthly table */
 .sal-tbl{width:100%;border-collapse:collapse}
 .sal-tbl th{text-align:right;font-size:11px;color:var(--faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 0 9px}
@@ -416,6 +420,12 @@ try{var _t=localStorage.getItem('bvtax-theme')||(window.matchMedia('(prefers-col
         </div>
       </div>
 
+      <!-- BV vs eenmanszaak -->
+      <div class="card">
+        <div class="card-h"><span class="ico" style="background:#0e7490">Δ</span><h2>BV vs eenmanszaak (ZZP)</h2><span class="tag">same revenue &amp; costs</span></div>
+        <div class="card-b" id="zzpBody"></div>
+      </div>
+
       <!-- Tax composition + Summary -->
       <div class="cards-2" style="margin-bottom:20px">
         <div class="card">
@@ -525,7 +535,10 @@ const PARAMS = [
   {id:'box2r2',     label:'Box 2 rate — bracket 2',         val:0.31,    type:'pct'},
   {id:'dwht',       label:'Dividend withholding (prepaid)', val:0.15,    type:'pct'},
   {group:'DGA'},
-  {id:'gebrLoon',   label:'Gebruikelijk loon (minimum salary)', val:58000, type:'eur'}
+  {id:'gebrLoon',   label:'Gebruikelijk loon (minimum salary)', val:58000, type:'eur'},
+  {group:'Eenmanszaak (ZZP) — comparison'},
+  {id:'zelfAftrek', label:'Zelfstandigenaftrek',                val:1200,  type:'eur'},
+  {id:'mkbVrij',    label:'MKB-winstvrijstelling',              val:0.127, type:'pct'}
 ];
 
 const state = {};
@@ -608,6 +621,30 @@ function calc(s){
     pbt,vpb1,vpb2,vpb,atp,t1,t2,t3,ahk,ahkClaw,ak,creditsB1,creditsB2,creditsUnused,
     nit,zvw,netSalary,dgaDiv,partnerDiv,box2a,box2b,box2,dwht,netDiv,totalTax,netCash,retained,
     taxPctEarnings,effTakeHome};
+}
+
+/* ---------- the same business as an eenmanszaak (ZZP) ---------- */
+function calcZzp(s){
+  s = s || state;
+  const billDays = Math.max(s.workDays - s.vacation, 0);
+  const revenue  = s.rate * s.hoursDay * billDays;
+  const winst    = revenue - s.cost;
+  const za       = Math.min(P.zelfAftrek, Math.max(winst, 0));
+  const mkbAmt   = P.mkbVrij * Math.max(winst - za, 0);
+  const taxable  = Math.max(winst - za - mkbAmt, 0);
+  const t1 = P.b1r * Math.min(taxable, P.b1lim);
+  const t2 = P.b2r * Math.max(Math.min(taxable, P.b2lim) - P.b1lim, 0);
+  const t3 = P.b3r * Math.max(taxable - P.b2lim, 0);
+  // tariefsaanpassing: the deductions only give relief at the bracket-2 rate
+  const tariefCorr = (P.b3r - P.b2r) * Math.max(0, Math.max(winst, 0) - Math.max(taxable, P.b2lim));
+  const bracketTax = t1 + t2 + t3 + tariefCorr;
+  const credits = Math.min(ahkFor(taxable) + akFor(taxable), bracketTax);
+  const it  = bracketTax - credits;
+  const zvw = P.zvwRate * Math.min(taxable, P.zvwMax);
+  const tax = it + zvw;
+  const net = winst - tax;
+  const rate = winst > 0 ? tax / winst : 0;
+  return {revenue, winst, za, mkbAmt, taxable, tariefCorr, it, zvw, tax, net, rate};
 }
 /* MODEL-END */
 
@@ -936,6 +973,35 @@ function render(){
     </div>`).join('');
 
   renderOptimizer(r);
+  renderZzp(r);
+}
+
+/* ---------- BV vs eenmanszaak ---------- */
+function renderZzp(r){
+  const z = calcZzp();
+  const full = calc({...state, dividend: Math.max(r.atp, 0)});
+  const row = (lbl, a, b, c, cls) =>
+    `<tr${cls ? ` class="${cls}"` : ''}><td>${lbl}</td><td class="num">${a}</td><td class="num">${b}</td><td class="num">${c}</td></tr>`;
+  const diff = full.netCash - z.net;
+  const headline = diff >= 0
+    ? `Paying everything out this year, the BV nets <b>${eur(diff)}</b> more than the same business as an eenmanszaak.`
+    : `As an eenmanszaak you would net <b>${eur(-diff)}</b> more this year than the BV paying everything out.`;
+  document.getElementById('zzpBody').innerHTML = `
+    <div class="zzp-scroll">
+    <table class="sal-tbl">
+      <thead><tr><th>Same business, two legal forms</th><th>Eenmanszaak</th><th>BV — current mix</th><th>BV — all paid out</th></tr></thead>
+      <tbody>
+        ${row('Business earnings (revenue − costs)', eurS(z.winst), eurS(z.winst), eurS(z.winst))}
+        ${row('Zelfstandigenaftrek + MKB-vrijstelling', '−'+eur(z.za + z.mkbAmt), '—', '—')}
+        ${row('Total tax this year', eur(z.tax), eur(r.totalTax), eur(full.totalTax))}
+        ${row('Left inside the BV (after tax)', '—', eurS(r.retained), eur(0))}
+        ${row('Effective rate on earnings', pct(z.rate), pct(r.taxPctEarnings), pct(full.taxPctEarnings))}
+        ${row('Net in pocket this year', eur(z.net), eur(r.netCash), eur(full.netCash), 'tot')}
+      </tbody>
+    </table>
+    </div>
+    <div class="credit-note" style="margin-top:12px">${headline} Retaining profit in the BV defers Box 2 and can shift the picture further.</div>
+    <div class="opt-note">Eenmanszaak side assumes the urencriterium (1,225 h/year) is met and excludes the one-off startersaftrek. The deduction relief is capped at the ${pct(P.b2r)} rate (tariefsaanpassing${z.tariefCorr > 0.5 ? ': +' + eur(z.tariefCorr) + ' here' : ''}). Neither side includes pension build-up or disability insurance.</div>`;
 }
 
 /* ============ SCENARIO PERSISTENCE (URL hash + localStorage) ============ */
